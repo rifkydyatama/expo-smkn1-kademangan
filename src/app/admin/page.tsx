@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   LayoutDashboard, 
@@ -344,7 +344,7 @@ export default function AdminPage() {
             </div>
             <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-widest flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                CONTROL CENTER V5.0
+                CONTROL CENTER V7.0
             </div>
         </div>
         
@@ -390,8 +390,12 @@ export default function AdminPage() {
             <div>
                 <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{activeTab.replace(/_/g, " ")}</h2>
                 <p className="text-slate-500 text-sm font-medium mt-1 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    Status Server: <strong>Connected</strong> • Sync: {new Date().toLocaleTimeString()}
+                    <span className={`w-2 h-2 rounded-full ${
+                        settings.site_mode === 'LIVE' ? 'bg-green-500' :
+                        settings.site_mode === 'MAINTENANCE' ? 'bg-yellow-500' :
+                        'bg-blue-500'
+                    }`}></span>
+                    Mode Situs: <strong>{settings.site_mode}</strong> • Sync: {new Date().toLocaleTimeString()}
                 </p>
             </div>
             <div className="flex gap-3">
@@ -402,14 +406,6 @@ export default function AdminPage() {
                 >
                     <RefreshCw size={20}/>
                 </button>
-                <div className={`px-5 py-3 border rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition-colors ${
-                    settings.status === "OPEN" 
-                    ? "bg-green-50 border-green-200 text-green-700" 
-                    : "bg-red-50 border-red-200 text-red-700"
-                }`}>
-                    <span className={`w-2.5 h-2.5 rounded-full ${settings.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-500"}`}></span>
-                    {settings.status === "OPEN" ? "SYSTEM ONLINE" : "SYSTEM LOCKED"}
-                </div>
             </div>
         </div>
 
@@ -447,13 +443,15 @@ export default function AdminPage() {
                     <div className="text-sm text-slate-500 font-bold mt-2">Partner Kampus</div>
                 </div>
 
-                {/* Card 4: Status Pendaftaran */}
-                <div className={`p-6 rounded-3xl border shadow-sm text-white flex flex-col justify-between ${settings.status === "OPEN" ? "bg-gradient-to-br from-green-500 to-emerald-700 border-green-600" : "bg-gradient-to-br from-red-500 to-rose-700 border-red-600"}`}>
-                    <div className="font-bold opacity-80 flex items-center gap-2"><Settings size={16}/> STATUS SYSTEM</div>
-                    <div className="text-3xl font-black tracking-widest mt-4">{settings.status}</div>
-                    <div className="text-xs opacity-75 mt-2 font-medium">
-                        {settings.status === "OPEN" ? "Registrasi dibuka untuk umum" : "Registrasi ditutup sementara"}
-                    </div>
+                {/* Card 4: SITE MODE (Updated Color) */}
+                <div className={`p-6 rounded-3xl border shadow-sm text-white flex flex-col justify-between ${
+                    settings.site_mode === "LIVE" ? "bg-gradient-to-br from-green-500 to-emerald-700 border-green-600" : 
+                    settings.site_mode === "MAINTENANCE" ? "bg-gradient-to-br from-yellow-500 to-amber-600 border-yellow-600" :
+                    "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600"
+                }`}>
+                    <div className="font-bold opacity-80 flex items-center gap-2"><Settings size={16}/> SITE MODE</div>
+                    <div className="text-3xl font-black tracking-widest mt-4">{settings.site_mode}</div>
+                    <div className="text-xs opacity-75 mt-2 font-medium">Status Website Saat Ini</div>
                 </div>
                 
                 {/* Recent Activity Table */}
@@ -741,6 +739,30 @@ export default function AdminPage() {
                             <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                                 <AlertCircle size={10}/> Masukkan kode unik video dari URL Youtube (bagian setelah v=)
                             </p>
+                        </div>
+                    </div>
+
+                    {/* Stats Card */}
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
+                            <BarChart3 size={20} className="text-purple-600"/> Statistik (Animated Counter)
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Kampus</label>
+                                <div className="text-2xl font-black text-purple-600">{campuses.length}</div>
+                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Peserta</label>
+                                <div className="text-2xl font-black text-blue-600">{participants.length}</div>
+                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase block text-center mb-2">Jml Speaker</label>
+                                <input type="number" value={settings.stats_speakers || ""} onChange={e => setSettings({...settings, stats_speakers: e.target.value})} className="w-full p-3 border rounded-xl font-black text-2xl text-center text-orange-600 outline-none focus:border-orange-500 transition-all"/>
+                                <div className="text-[10px] text-center mt-1 text-slate-400">*Manual</div>
+                            </div>
                         </div>
                     </div>
                 </div>
