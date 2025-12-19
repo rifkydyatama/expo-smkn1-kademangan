@@ -27,7 +27,10 @@ import {
   UserCheck,
   Youtube,
   Lock,
-  Unlock
+  Unlock,
+  Construction, // Icon Maintenance
+  Timer,        // Icon Coming Soon
+  Globe         // Icon Live
 } from "lucide-react";
 
 // --- 1. DEFINISI TIPE DATA (LENGKAP) ---
@@ -120,6 +123,11 @@ export default function AdminPage() {
         const { data: s } = await supabase.from("event_settings").select("*");
         const conf: any = {}; 
         s?.forEach(item => conf[item.key] = item.value); 
+        
+        // Default value protection jika belum ada di DB
+        if (!conf.site_mode) conf.site_mode = "LIVE";
+        if (!conf.status) conf.status = "OPEN";
+
         setSettings(conf);
 
         // 2. Participants (Peserta) - Order by ID descending (Terbaru diatas)
@@ -713,7 +721,7 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    {/* VIDEO ID SETTING (BARU) */}
+                    {/* VIDEO ID SETTING */}
                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Youtube size={24} className="text-red-600"/> Video Aftermovie
@@ -735,30 +743,6 @@ export default function AdminPage() {
                             </p>
                         </div>
                     </div>
-
-                    {/* Stats Card */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
-                            <BarChart3 size={20} className="text-purple-600"/> Statistik (Animated Counter)
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Kampus</label>
-                                <div className="text-2xl font-black text-purple-600">{campuses.length}</div>
-                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Peserta</label>
-                                <div className="text-2xl font-black text-blue-600">{participants.length}</div>
-                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block text-center mb-2">Jml Speaker</label>
-                                <input type="number" value={settings.stats_speakers || ""} onChange={e => setSettings({...settings, stats_speakers: e.target.value})} className="w-full p-3 border rounded-xl font-black text-2xl text-center text-orange-600 outline-none focus:border-orange-500 transition-all"/>
-                                <div className="text-[10px] text-center mt-1 text-slate-400">*Manual</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="space-y-8">
@@ -767,17 +751,36 @@ export default function AdminPage() {
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
                         </h3>
+                        
+                        {/* MODE WEBSITE CONTROL (BARU) */}
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Status Pendaftaran (Global Switch)</label>
-                            <div className="flex gap-4">
-                                <button onClick={() => setSettings({...settings, status: "OPEN"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "OPEN" ? "border-green-500 bg-green-50 text-green-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    {settings.status === "OPEN" ? <Unlock size={20}/> : <CheckCircle size={20}/>} PENDAFTARAN DIBUKA
+                            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Mode Tampilan Website</label>
+                            <div className="flex gap-2">
+                                <button onClick={() => setSettings({...settings, site_mode: "LIVE"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "LIVE" ? "bg-green-50 border-green-500 text-green-700 ring-2 ring-green-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
+                                    <Globe size={20}/> LIVE
                                 </button>
-                                <button onClick={() => setSettings({...settings, status: "CLOSED"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "CLOSED" ? "border-red-500 bg-red-50 text-red-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    {settings.status === "CLOSED" ? <Lock size={20}/> : <XCircle size={20}/>} PENDAFTARAN DITUTUP
+                                <button onClick={() => setSettings({...settings, site_mode: "COMING_SOON"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "COMING_SOON" ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
+                                    <Timer size={20}/> COMING SOON
+                                </button>
+                                <button onClick={() => setSettings({...settings, site_mode: "MAINTENANCE"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "MAINTENANCE" ? "bg-yellow-50 border-yellow-500 text-yellow-700 ring-2 ring-yellow-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
+                                    <Construction size={20}/> MAINTENANCE
                                 </button>
                             </div>
                         </div>
+
+                        {/* STATUS PENDAFTARAN CONTROL */}
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Status Pendaftaran Form</label>
+                            <div className="flex gap-4">
+                                <button onClick={() => setSettings({...settings, status: "OPEN"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "OPEN" ? "border-green-500 bg-green-50 text-green-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
+                                    {settings.status === "OPEN" ? <Unlock size={20}/> : <CheckCircle size={20}/>} DIBUKA
+                                </button>
+                                <button onClick={() => setSettings({...settings, status: "CLOSED"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "CLOSED" ? "border-red-500 bg-red-50 text-red-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
+                                    {settings.status === "CLOSED" ? <Lock size={20}/> : <XCircle size={20}/>} DITUTUP
+                                </button>
+                            </div>
+                        </div>
+                        
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Running Text (Pengumuman Atas)</label>
                             <textarea value={settings.announcement || ""} onChange={e => setSettings({...settings, announcement: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 h-32 focus:ring-2 focus:ring-slate-900 outline-none transition-all" placeholder="Isi pengumuman penting di sini..."/>
