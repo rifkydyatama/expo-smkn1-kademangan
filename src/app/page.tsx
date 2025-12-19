@@ -571,7 +571,7 @@ export default function Home() {
                             <p className="text-slate-300 text-2xl font-light">Saksikan keseruan tahun lalu & rasakan atmosfernya.</p>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </motion.section>
 
             {/* QUOTE SECTION */}
@@ -903,7 +903,7 @@ export default function Home() {
              >
                 <iframe 
                   className="w-full h-full" 
-                  src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1&modestbranding=1&rel=0" // ID Video Demo
+                  src={`https://www.youtube.com/embed/${config.youtube_video_id || "jfKfPfyJRdk"}?autoplay=1&modestbranding=1&rel=0`} 
                   title="Aftermovie" 
                   allow="autoplay; encrypted-media" 
                   allowFullScreen
