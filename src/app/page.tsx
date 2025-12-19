@@ -120,6 +120,7 @@ const Counter = ({ to }: { to: number }) => {
 };
 
 // --- 3. COMPONENT: BACKGROUND 5.0 (FULL DETAIL) ---
+// Ini versi background yang lebih detail dengan lebih banyak layer
 const TechBackground = () => (
   <div className="fixed inset-0 z-[-1] overflow-hidden bg-slate-50 selection:bg-cyan-300 selection:text-cyan-900 pointer-events-none">
     {/* Grid Layer 1 */}
@@ -257,7 +258,7 @@ export default function Home() {
   
   // Helper Notifikasi
   const showNotify = (message: string, type: "info" | "error" | "success" = "info") => {
-      setNotification({ show: true, message, type });
+      setNotification({ show: true, message, type: type as "info" | "error" }); // Fixed type assertion
   };
 
   // Parallax Hooks
@@ -338,7 +339,7 @@ export default function Home() {
         .maybeSingle();
         
     if (existing) { 
-        showNotify("Email atau Nomor HP ini sudah terdaftar!", "error"); // GANTI ALERT DENGAN NOTIF
+        showNotify("Email atau Nomor HP ini sudah terdaftar!", "error"); 
         setLoading(false); 
         return; 
     }
@@ -351,7 +352,7 @@ export default function Home() {
         .single();
         
     if (error) { 
-        showNotify("Gagal Registrasi: " + error.message, "error"); // GANTI ALERT DENGAN NOTIF
+        showNotify("Gagal Registrasi: " + error.message, "error"); 
         setLoading(false); 
     } else { 
         localStorage.setItem("smkn1_expo_ticket_id", data.id); 
@@ -416,7 +417,7 @@ export default function Home() {
                 
                 {view === "landing" && (
                     <button 
-                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
+                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
                         className={`hidden md:flex px-8 py-4 rounded-full font-bold transition-all shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-1 items-center gap-3 text-sm ${
                             config.status === "CLOSED" 
                             ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
@@ -481,7 +482,7 @@ export default function Home() {
                           className="flex flex-wrap gap-4"
                       >
                           <button 
-                              onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
+                              onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
                               className={`px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl transition-all hover:scale-105 flex items-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
                           >
                               {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text || "Ambil Tiket"}
@@ -741,7 +742,7 @@ export default function Home() {
                     <p className="text-slate-400 mb-12 text-2xl font-light">Kuota tiket terbatas. Amankan posisimu di era baru pendidikan vokasi sekarang juga.</p>
                     
                     <button 
-                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
+                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
                         className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
                     >
                         {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftarkan Diriku Sekarang"}
@@ -966,4 +967,4 @@ export default function Home() {
       </AnimatePresence>
     </main>
   );
-} // Update Final Fix Notifikasi
+}
