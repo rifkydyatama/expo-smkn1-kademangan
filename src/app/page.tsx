@@ -31,8 +31,9 @@ import {
   Lock, 
   Mic, 
   X,
-  MapPin,
-  Info
+  Info,
+  Construction,
+  Timer
 } from "lucide-react";
 
 // --- 1. COMPLEX ANIMATION VARIANTS (EXPANDED) ---
@@ -166,7 +167,56 @@ const TechBackground = () => (
   </div>
 );
 
-// --- 4. COMPONENT: CAMPUS MARQUEE (DETAIL CARD) ---
+// --- 4. COMPONENT: MAINTENANCE / COMING SOON SCREEN (BARU) ---
+const MaintenanceScreen = ({ mode }: { mode: string }) => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden p-6 text-center">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
+      
+      {/* Animated Glow */}
+      <motion.div 
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} 
+        transition={{ duration: 4, repeat: Infinity }} 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[100px]"
+      />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.8 }}
+        className="relative z-10 max-w-2xl"
+      >
+          <div className="mb-8 flex justify-center">
+              {mode === 'MAINTENANCE' ? (
+                  <div className="w-24 h-24 bg-yellow-500/20 rounded-3xl flex items-center justify-center border border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+                      <Construction className="w-12 h-12 text-yellow-400" />
+                  </div>
+              ) : (
+                  <div className="w-24 h-24 bg-cyan-500/20 rounded-3xl flex items-center justify-center border border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                      <Timer className="w-12 h-12 text-cyan-400" />
+                  </div>
+              )}
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
+              {mode === 'MAINTENANCE' ? "UNDER MAINTENANCE" : "COMING SOON"}
+          </h1>
+          
+          <p className="text-xl text-slate-300 mb-10 leading-relaxed">
+              {mode === 'MAINTENANCE' 
+                ? "Sistem sedang dalam perbaikan berkala untuk meningkatkan performa. Kami akan segera kembali." 
+                : "Kami sedang menyiapkan sesuatu yang luar biasa untuk Expo SMKN 1 Kademangan tahun ini. Tunggu tanggal mainnya!"}
+          </p>
+
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-bold tracking-widest uppercase text-slate-300">System Offline</span>
+          </div>
+      </motion.div>
+  </div>
+);
+
+// --- 5. COMPONENT: CAMPUS MARQUEE (DETAIL CARD) ---
 const CampusMarquee = ({ items }: { items: any[] }) => {
   if (!items || items.length === 0) return null;
   
@@ -232,10 +282,11 @@ const CampusMarquee = ({ items }: { items: any[] }) => {
   );
 };
 
-// --- 5. MAIN PAGE COMPONENT ---
+// --- 6. MAIN PAGE COMPONENT ---
 export default function Home() {
   const [isChecking, setIsChecking] = useState(true);
-  const [view, setView] = useState<"landing" | "register" | "ticket">("landing");
+  const [view, setView] = useState<"landing" | "register" | "ticket" | "maintenance">("landing");
+  const [siteMode, setSiteMode] = useState("LIVE"); // Default LIVE
   
   // Data State
   const [config, setConfig] = useState<any>({});
@@ -287,7 +338,15 @@ export default function Home() {
             if (settingsRes.data) { 
                 const conf: any = {}; 
                 settingsRes.data.forEach((i) => conf[i.key] = i.value); 
-                setConfig(conf); 
+                setConfig(conf);
+                
+                // CEK MODE SITUS (BARU)
+                if (conf.site_mode === 'MAINTENANCE' || conf.site_mode === 'COMING_SOON') {
+                    setSiteMode(conf.site_mode);
+                    setView("maintenance");
+                    setIsChecking(false);
+                    return; // Stop loading other things if maintenance
+                }
             }
             if (campusesRes.data) setCampuses(campusesRes.data);
             if (rundownRes.data) setRundown(rundownRes.data);
@@ -381,6 +440,9 @@ export default function Home() {
         <p className="mt-6 text-sm font-bold text-slate-400 tracking-[0.5em] animate-pulse relative z-10">SYSTEM INITIALIZING</p>
     </div>
   );
+
+  // --- RENDER MAINTENANCE (BARU) ---
+  if (view === "maintenance") return <MaintenanceScreen mode={siteMode} />;
 
   return (
     <main className="min-h-screen font-sans text-slate-800 relative selection:bg-cyan-200 selection:text-cyan-900">
@@ -482,7 +544,7 @@ export default function Home() {
                           className="flex flex-wrap gap-4"
                       >
                           <button 
-                              onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
+                              onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
                               className={`px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl transition-all hover:scale-105 flex items-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
                           >
                               {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text || "Ambil Tiket"}
@@ -742,7 +804,7 @@ export default function Home() {
                     <p className="text-slate-400 mb-12 text-2xl font-light">Kuota tiket terbatas. Amankan posisimu di era baru pendidikan vokasi sekarang juga.</p>
                     
                     <button 
-                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
+                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
                         className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
                     >
                         {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftarkan Diriku Sekarang"}
