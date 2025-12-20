@@ -384,12 +384,56 @@ export default function AdminPage() {
   };
 
   // --- CRUD ACTIONS (SETTINGS, CAMPUS, RUNDOWN, FAQ) ---
+
+    // --- YOUTUBE ID NORMALIZER (SMART LOGIC) ---
+    // Accepts:
+    // - ID only: jfKfPfyJRdk
+    // - Full URL: https://www.youtube.com/watch?v=jfKfPfyJRdk
+    // - Short URL: https://youtu.be/jfKfPfyJRdk
+    // - Embed URL: https://www.youtube.com/embed/jfKfPfyJRdk
+    const normalizeYouTubeVideoId = (raw: unknown): string => {
+        const input = String(raw ?? "").trim();
+        if (!input) return "";
+
+        // If user already pasted an ID (most common)
+        if (/^[a-zA-Z0-9_-]{6,}$/.test(input) && !input.includes("/") && !input.includes("?")) {
+            return input;
+        }
+
+        try {
+            const url = new URL(input);
+
+            // youtube.com/watch?v=ID
+            const vParam = url.searchParams.get("v");
+            if (vParam) return vParam;
+
+            // youtu.be/ID
+            if (url.hostname.includes("youtu.be")) {
+                const idFromPath = url.pathname.replace("/", "").trim();
+                if (idFromPath) return idFromPath;
+            }
+
+            // youtube.com/embed/ID
+            const embedMatch = url.pathname.match(/\/embed\/([^/?#]+)/);
+            if (embedMatch?.[1]) return embedMatch[1];
+
+            return input;
+        } catch {
+            // Not a valid URL, fallback to raw string
+            return input;
+        }
+    };
   
   const saveSettings = async () => {
     setLoading(true);
     let errorCount = 0;
+
+        const normalizedSettings: any = { ...settings };
+        if (Object.prototype.hasOwnProperty.call(normalizedSettings, "youtube_video_id")) {
+            normalizedSettings.youtube_video_id = normalizeYouTubeVideoId(normalizedSettings.youtube_video_id);
+        }
     
-    for (const [key, value] of Object.entries(settings)) {
+        for (const [key, value] of Object.entries(normalizedSettings)) {
        const { error } = await supabase
         .from("event_settings")
         .upsert({ key, value: String(value) }, { onConflict: 'key' });
@@ -401,6 +445,8 @@ export default function AdminPage() {
     if (errorCount > 0) {
         showNotify(`⚠️ Ada ${errorCount} pengaturan gagal disimpan. Cek console.`, "error");
     } else {
+                // Keep UI in sync if we normalized input (especially youtube_video_id)
+                setSettings(normalizedSettings);
         showNotify("✅ Semua konfigurasi berhasil disimpan!", "success"); 
         fetchAllData();
     }
