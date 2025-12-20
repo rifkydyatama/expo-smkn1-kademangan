@@ -28,6 +28,7 @@ import {
   Quote, 
   Zap, 
   Award, 
+    User,
   Lock, 
   Mic, 
   X,
@@ -82,6 +83,14 @@ const staggerContainer: Variants = {
       delayChildren: 0.2
     }
   }
+};
+
+const HighlightIcon = ({ name, className }: { name: string; className?: string }) => {
+    if (name === "Star") return <Star className={className} />;
+    if (name === "Award") return <Award className={className} />;
+    if (name === "Zap") return <Zap className={className} />;
+    if (name === "User") return <User className={className} />;
+    return null;
 };
 
 // --- 2. COMPONENT: ANIMATED COUNTER (PRECISE) ---
@@ -259,6 +268,7 @@ export default function Home() {
   const [config, setConfig] = useState<any>({});
   const [campuses, setCampuses] = useState<any[]>([]);
   const [rundown, setRundown] = useState<any[]>([]);
+    const [highlights, setHighlights] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   
   // Real-time Counts
@@ -306,10 +316,11 @@ export default function Home() {
         try {
                         console.debug("[landing] fetching data", { reason });
 
-                        const [settingsRes, campusesRes, rundownRes, faqRes] = await Promise.all([
+                const [settingsRes, campusesRes, rundownRes, highlightsRes, faqRes] = await Promise.all([
                                 supabase.from("event_settings").select("*"),
                                 supabase.from("event_campuses").select("*").order('id'),
                                 supabase.from("event_rundown").select("*").order('id'),
+                    supabase.from("event_highlights").select("*").order('id'),
                                 supabase.from("event_faq").select("*").order('id')
                         ]);
 
@@ -321,6 +332,9 @@ export default function Home() {
                         }
                         if (rundownRes.error) {
                             console.error("[landing] failed to fetch event_rundown", rundownRes.error);
+                        }
+                        if (highlightsRes.error) {
+                            console.error("[landing] failed to fetch event_highlights", highlightsRes.error);
                         }
                         if (faqRes.error) {
                             console.error("[landing] failed to fetch event_faq", faqRes.error);
@@ -340,6 +354,7 @@ export default function Home() {
 
                             if (campusesRes.data) setCampuses(campusesRes.data);
                             if (rundownRes.data) setRundown(rundownRes.data);
+                            if (highlightsRes.data) setHighlights(highlightsRes.data);
                             if (faqRes.data) setFaqs(faqRes.data);
                         }
 
@@ -437,6 +452,11 @@ export default function Home() {
                 "postgres_changes",
                 { event: "*", schema: "public", table: "event_rundown" },
                 () => scheduleRefetch("event_rundown")
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "event_highlights" },
+                () => scheduleRefetch("event_highlights")
             )
             .on(
                 "postgres_changes",
@@ -791,8 +811,8 @@ export default function Home() {
                         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-50 rounded-full translate-x-1/3 -translate-y-1/3 group-hover:scale-125 transition-transform duration-700"></div>
                         <div className="relative z-10">
                             <span className="bg-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-6 inline-block">Highlight Utama</span>
-                            <h3 className="text-4xl font-black mb-4 mt-4 text-slate-900">{rundown?.[0]?.title}</h3>
-                            <p className="text-slate-500 text-lg leading-relaxed">{rundown?.[0]?.description}</p>
+                            <h3 className="text-4xl font-black mb-4 mt-4 text-slate-900">{highlights?.[0]?.title}</h3>
+                            <p className="text-slate-500 text-lg leading-relaxed">{highlights?.[0]?.description}</p>
                         </div>
                         <div className="relative z-10 mt-12 flex -space-x-4">
                             {[1,2,3].map(i=><div key={i} className="w-14 h-14 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 shadow-md">User</div>)}
@@ -804,16 +824,22 @@ export default function Home() {
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
                         <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-600/30 rounded-full blur-3xl group-hover:bg-purple-600/50 transition-colors"></div>
                         <div className="relative z-10 max-w-xs">
-                            <h3 className="text-3xl font-bold mb-3">{rundown?.[1]?.title}</h3>
-                            <p className="text-slate-300">{rundown?.[1]?.description}</p>
+                            <h3 className="text-3xl font-bold mb-3">{highlights?.[1]?.title}</h3>
+                            <p className="text-slate-300">{highlights?.[1]?.description}</p>
                         </div>
-                        <Award className="w-32 h-32 text-yellow-400 relative z-10 group-hover:rotate-12 group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+                        <div className="w-32 h-32 relative z-10 group-hover:rotate-12 group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] flex items-center justify-center">
+                            <HighlightIcon name={String(highlights?.[1]?.icon || "")} className="w-32 h-32 text-yellow-400" />
+                        </div>
                     </motion.div>
 
                     <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-blue-50 border border-blue-100 p-8 hover:bg-blue-100 transition-colors flex flex-col justify-center">
-                        <div className="w-12 h-12 bg-blue-200 text-blue-700 rounded-2xl flex items-center justify-center mb-4"><Sparkles size={24}/></div>
-                        <h3 className="text-xl font-bold text-blue-900 mb-2">{rundown?.[2]?.title}</h3>
-                        <p className="text-blue-700/80 text-sm">{rundown?.[2]?.description}</p>
+                        <div className="w-12 h-12 bg-blue-200 text-blue-700 rounded-2xl flex items-center justify-center mb-4">
+                            {highlights?.[2]?.icon ? (
+                                <HighlightIcon name={String(highlights?.[2]?.icon)} className="w-6 h-6" />
+                            ) : null}
+                        </div>
+                        <h3 className="text-xl font-bold text-blue-900 mb-2">{highlights?.[2]?.title}</h3>
+                        <p className="text-blue-700/80 text-sm">{highlights?.[2]?.description}</p>
                     </motion.div>
 
                     <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-white border border-slate-200 p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500 transition-colors group">
