@@ -24,3 +24,48 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes expo-orb-cyan {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+  50% { transform: translate3d(-200px, 100px, 0) scale(1.2); opacity: 0.6; }
+  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+}
+
+@keyframes expo-orb-purple {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+  50% { transform: translate3d(200px, -100px, 0) scale(1.5); opacity: 0.5; }
+  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+}
+
+@keyframes expo-orb-blue {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  33% { transform: translate3d(100px, 50px, 0); opacity: 0.2; }
+  66% { transform: translate3d(-100px, -50px, 0); opacity: 0.2; }
+  100% { transform: translate3d(0, 0, 0); opacity: 0; }
+}
+
+@keyframes expo-marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.expo-orb {
+  will-change: transform, opacity;
+}
+
+.expo-orb-cyan {
+  animation: expo-orb-cyan 25s linear infinite;
+}
+
+.expo-orb-purple {
+  animation: expo-orb-purple 30s linear infinite;
+}
+
+.expo-orb-blue {
+  animation: expo-orb-blue 40s linear infinite;
+}
+
+.expo-marquee-track {
+  will-change: transform;
+  animation: expo-marquee 60s linear infinite;
+}

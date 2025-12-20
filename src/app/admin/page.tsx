@@ -177,16 +177,19 @@ export default function AdminPage() {
         if(p) setParticipants(p);
 
         // 3. Campuses
-        const { data: c } = await supabase.from("event_campuses").select("*").order('id'); 
+        const { data: c, error: campusesError } = await supabase.from("event_campuses").select("*").order('id'); 
         if(c) setCampuses(c);
-        
+        if (campusesError) throw campusesError;
+
         // 4. Rundown
-        const { data: r } = await supabase.from("event_rundown").select("*").order('id'); 
+        const { data: r, error: rundownError } = await supabase.from("event_rundown").select("*").order('id'); 
         if(r) setRundown(r);
+        if (rundownError) throw rundownError;
 
         // 5. FAQ
-        const { data: f } = await supabase.from("event_faq").select("*").order('id'); 
+        const { data: f, error: faqError } = await supabase.from("event_faq").select("*").order('id'); 
         if(f) setFaqs(f);
+        if (faqError) throw faqError;
 
     } catch (error) {
         console.error("Gagal mengambil data:", error);

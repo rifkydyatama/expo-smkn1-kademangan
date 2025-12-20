@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { 
   motion, 
   AnimatePresence, 
@@ -85,7 +85,7 @@ const staggerContainer: Variants = {
 };
 
 // --- 2. COMPONENT: ANIMATED COUNTER (PRECISE) ---
-const Counter = ({ to }: { to: number }) => {
+const Counter = memo(({ to }: { to: number }) => {
   const nodeRef = useRef<HTMLSpanElement>(null);
   const isInView = useInView(nodeRef, { once: true });
   
@@ -118,7 +118,7 @@ const Counter = ({ to }: { to: number }) => {
   }, [to, isInView]);
 
   return <span ref={nodeRef} className="tabular-nums tracking-tight">0</span>;
-};
+});
 
 // --- 3. COMPONENT: BACKGROUND 5.0 (FULL DETAIL) ---
 // Ini versi background yang lebih detail dengan lebih banyak layer
@@ -130,40 +130,10 @@ const TechBackground = () => (
     {/* Grid Layer 2 (Larger) */}
     <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-size-[160px_160px]"></div>
 
-    {/* Floating Orbs - Cyan */}
-    <motion.div 
-      animate={{ 
-        x: [0, 200, 0], 
-        y: [0, -100, 0], 
-        scale: [1, 1.2, 1],
-        opacity: [0.3, 0.6, 0.3]
-      }} 
-      transition={{ duration: 25, repeat: Infinity, ease: "linear" }} 
-      className="absolute top-[-10%] right-[-10%] w-200 h-200 bg-cyan-400/20 rounded-full blur-[120px] mix-blend-multiply" 
-    />
-    
-    {/* Floating Orbs - Purple */}
-    <motion.div 
-      animate={{ 
-        x: [0, -200, 0], 
-        y: [0, 100, 0], 
-        scale: [1, 1.5, 1],
-        opacity: [0.3, 0.5, 0.3]
-      }} 
-      transition={{ duration: 30, repeat: Infinity, ease: "linear" }} 
-      className="absolute bottom-[-10%] left-[-10%] w-200 h-200 bg-purple-400/20 rounded-full blur-[120px] mix-blend-multiply" 
-    />
-
-    {/* Floating Orbs - Center Blue (Accent) */}
-    <motion.div 
-      animate={{ 
-        x: [0, 100, -100, 0], 
-        y: [0, 50, -50, 0],
-        opacity: [0, 0.2, 0]
-      }} 
-      transition={{ duration: 40, repeat: Infinity, ease: "linear" }} 
-      className="absolute top-[40%] left-[40%] w-96 h-96 bg-blue-500/10 rounded-full blur-[80px]" 
-    />
+        {/* Floating Orbs (CSS Animation for Performance) */}
+        <div className="expo-orb expo-orb-cyan absolute top-[-10%] right-[-10%] w-200 h-200 bg-cyan-400/20 rounded-full blur-[120px] mix-blend-multiply" />
+        <div className="expo-orb expo-orb-purple absolute bottom-[-10%] left-[-10%] w-200 h-200 bg-purple-400/20 rounded-full blur-[120px] mix-blend-multiply" />
+        <div className="expo-orb expo-orb-blue absolute top-[40%] left-[40%] w-96 h-96 bg-blue-500/10 rounded-full blur-[80px]" />
   </div>
 );
 
@@ -217,11 +187,11 @@ const MaintenanceScreen = ({ mode }: { mode: string }) => (
 );
 
 // --- 5. COMPONENT: CAMPUS MARQUEE (DETAIL CARD) ---
-const CampusMarquee = ({ items }: { items: any[] }) => {
+const CampusMarquee = memo(({ items }: { items: any[] }) => {
   if (!items || items.length === 0) return null;
   
-  // Quadruple items for ultra smooth infinite scroll without layout shifts
-  const marqueeItems = [...items, ...items, ...items, ...items];
+    // Duplicate items for seamless CSS marquee loop
+    const marqueeItems = [...items, ...items];
 
   return (
     <section className="py-20 bg-white/80 backdrop-blur-md border-y border-slate-200 overflow-hidden relative z-20">
@@ -248,11 +218,7 @@ const CampusMarquee = ({ items }: { items: any[] }) => {
             <div className="absolute inset-y-0 left-0 w-32 bg-linear-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
             <div className="absolute inset-y-0 right-0 w-32 bg-linear-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
             
-            <motion.div 
-                className="flex gap-8 w-max px-6" 
-                animate={{ x: [0, -2000] }} // Adjust logic based on width
-                transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-            >
+                        <div className="flex gap-8 w-max px-6 expo-marquee-track">
                 {marqueeItems.map((c, i) => (
                 <div 
                   key={i} 
@@ -276,17 +242,18 @@ const CampusMarquee = ({ items }: { items: any[] }) => {
                     </p>
                 </div>
                 ))}
-            </motion.div>
+                        </div>
         </div>
     </section>
   );
-};
+});
 
 // --- 6. MAIN PAGE COMPONENT ---
 export default function Home() {
   const [isChecking, setIsChecking] = useState(true);
   const [view, setView] = useState<"landing" | "register" | "ticket" | "maintenance">("landing");
   const [siteMode, setSiteMode] = useState("LIVE"); // Default LIVE
+    const [initError, setInitError] = useState<string | null>(null);
   
   // Data State
   const [config, setConfig] = useState<any>({});
@@ -308,9 +275,9 @@ export default function Home() {
   const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
   
   // Helper Notifikasi
-  const showNotify = (message: string, type: "info" | "error" | "success" = "info") => {
+    const showNotify = useCallback((message: string, type: "info" | "error" | "success" = "info") => {
       setNotification({ show: true, message, type: type as "info" | "error" }); // Fixed type assertion
-  };
+    }, []);
 
   // Parallax Hooks
   const { scrollY } = useScroll();
@@ -320,66 +287,174 @@ export default function Home() {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    const initSystem = async () => {
+        let isCancelled = false;
+        let refetchTimer: number | null = null;
+
+        const scheduleRefetch = (reason: string) => {
+            if (isCancelled) return;
+            if (refetchTimer) window.clearTimeout(refetchTimer);
+            refetchTimer = window.setTimeout(() => {
+                void fetchLandingData(`realtime:${reason}`);
+            }, 350);
+        };
+
+        const fetchLandingData = async (reason: string): Promise<{ siteMode: string }> => {
         try {
-            // Check Local Storage for Ticket FIRST
-            const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
-            
-            // Fetch All Data in Parallel
-            const [settingsRes, campusesRes, rundownRes, faqRes] = await Promise.all([
-                supabase.from("event_settings").select("*"),
-                supabase.from("event_campuses").select("*").order('id'),
-                supabase.from("event_rundown").select("*").order('id'),
-                supabase.from("event_faq").select("*").order('id')
-            ]);
-            
-            // Get Exact Count from Database
-            const { count: participantCount } = await supabase
-                .from("participants")
-                .select("*", { count: "exact", head: true });
-            
-            // CEK MODE SITUS (BARU)
-            if (settingsRes.data?.[0]?.site_mode === 'MAINTENANCE' || settingsRes.data?.[0]?.site_mode === 'COMING_SOON') {
-                setSiteMode(settingsRes.data[0].site_mode);
-                setView("maintenance");
+                        console.debug("[landing] fetching data", { reason });
+
+                        const [settingsRes, campusesRes, rundownRes, faqRes] = await Promise.all([
+                                supabase.from("event_settings").select("*"),
+                                supabase.from("event_campuses").select("*").order('id'),
+                                supabase.from("event_rundown").select("*").order('id'),
+                                supabase.from("event_faq").select("*").order('id')
+                        ]);
+
+                        if (settingsRes.error) {
+                            console.error("[landing] failed to fetch event_settings", settingsRes.error);
+                        }
+                        if (campusesRes.error) {
+                            console.error("[landing] failed to fetch event_campuses", campusesRes.error);
+                        }
+                        if (rundownRes.error) {
+                            console.error("[landing] failed to fetch event_rundown", rundownRes.error);
+                        }
+                        if (faqRes.error) {
+                            console.error("[landing] failed to fetch event_faq", faqRes.error);
+                        }
+
+                        const conf: any = {};
+                        settingsRes.data?.forEach((item: any) => {
+                            conf[item.key] = item.value;
+                        });
+
+                        if (!conf.site_mode) conf.site_mode = "LIVE";
+                        if (!conf.status) conf.status = "OPEN";
+
+                        if (!isCancelled) {
+                            setConfig(conf);
+                            setSiteMode(conf.site_mode);
+
+                            if (campusesRes.data) setCampuses(campusesRes.data);
+                            if (rundownRes.data) setRundown(rundownRes.data);
+                            if (faqRes.data) setFaqs(faqRes.data);
+                        }
+
+                        const { count: participantCount, error: participantCountError } = await supabase
+                                .from("participants")
+                                .select("*", { count: "exact", head: true });
+
+                        if (participantCountError) {
+                            console.error("[landing] failed to fetch participants count", participantCountError);
+                        }
+
+                        if (!isCancelled) {
+                            setRealCounts({
+                                participants: participantCount || 0,
+                                campuses: campusesRes.data?.length || 0
+                            });
+
+                            if (conf.site_mode === 'MAINTENANCE' || conf.site_mode === 'COMING_SOON') {
+                                setView("maintenance");
+                            }
+                        }
+                        return { siteMode: conf.site_mode };
+                } catch (error) {
+                        console.error("[landing] fetchLandingData error", error);
+                        if (!isCancelled) {
+                            setInitError("Gagal memuat data dari server. Periksa koneksi atau konfigurasi Supabase (RLS / env). Lihat console untuk detail.");
+                        }
+                        return { siteMode: "LIVE" };
+                }
+        };
+
+        const initSystem = async () => {
+            try {
+                setInitError(null);
+
+                const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                const envAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                if (!envUrl || !envAnon) {
+                    console.warn("[landing] Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY (fallbacks may be used in src/lib/supabase.ts)");
+                }
+
+                const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
+
+                const { siteMode: resolvedMode } = await fetchLandingData("init");
+                if (isCancelled) return;
+
+                // If maintenance, stop further flows
+                if (resolvedMode === 'MAINTENANCE' || resolvedMode === 'COMING_SOON') {
+                    setIsChecking(false);
+                    return;
+                }
+
+                if (savedTicketID) {
+                        const { data, error } = await supabase
+                                .from("participants")
+                                .select("*")
+                                .eq("id", savedTicketID)
+                                .single();
+
+                        if (error) {
+                            console.warn("[landing] failed to load saved ticket", { savedTicketID, error });
+                        }
+
+                        if (data) { 
+                                setTicketData(data); 
+                                setView("ticket"); 
+                        } else { 
+                                localStorage.removeItem("smkn1_expo_ticket_id"); 
+                                setView("landing"); 
+                        }
+                } else {
+                        setView("landing");
+                }
+            } catch (error) {
+                console.error("[landing] initSystem error", error);
+                setInitError("Terjadi kesalahan saat inisialisasi. Lihat console untuk detail.");
+            } finally {
                 setIsChecking(false);
-                return; // Stop loading other things if maintenance
             }
-            
-            if (campusesRes.data) setCampuses(campusesRes.data);
-            if (rundownRes.data) setRundown(rundownRes.data);
-            if (faqRes.data) setFaqs(faqRes.data);
-            
-            setRealCounts({ 
-                participants: participantCount || 0, 
-                campuses: campusesRes.data?.length || 0 
+        };
+
+        const channel = supabase
+            .channel("landing-realtime")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "event_settings" },
+                () => scheduleRefetch("event_settings")
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "event_campuses" },
+                () => scheduleRefetch("event_campuses")
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "event_rundown" },
+                () => scheduleRefetch("event_rundown")
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "event_faq" },
+                () => scheduleRefetch("event_faq")
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "participants" },
+                () => scheduleRefetch("participants")
+            )
+            .subscribe((status) => {
+                console.debug("[landing] realtime status", status);
             });
 
-            // Check Local Storage for Ticket
-            if (savedTicketID) {
-                const { data } = await supabase
-                    .from("participants")
-                    .select("*")
-                    .eq("id", savedTicketID)
-                    .single();
-                    
-                if (data) { 
-                    setTicketData(data); 
-                    setView("ticket"); 
-                } else { 
-                    localStorage.removeItem("smkn1_expo_ticket_id"); 
-                    setView("landing"); 
-                }
-            } else { 
-                setView("landing"); 
-            }
-        } catch (error) { 
-            console.error("Init Error:", error); 
-        } finally { 
-            setIsChecking(false); 
-        }
-    };
-    initSystem();
+        void initSystem();
+
+        return () => {
+            isCancelled = true;
+            if (refetchTimer) window.clearTimeout(refetchTimer);
+            supabase.removeChannel(channel);
+        };
   }, []);
 
   // --- REGISTRATION LOGIC ---
@@ -437,6 +512,27 @@ export default function Home() {
         <p className="mt-6 text-sm font-bold text-slate-400 tracking-[0.5em] animate-pulse relative z-10">SYSTEM INITIALIZING</p>
     </div>
   );
+
+    if (initError) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden p-6 text-center">
+                <div className="absolute inset-0 bg-grid-slate-200 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
+                <div className="relative z-10 max-w-xl">
+                    <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-red-100">
+                        <Lock className="w-10 h-10" />
+                    </div>
+                    <h1 className="text-3xl font-black text-slate-900 mb-3">Gagal Memuat Data</h1>
+                    <p className="text-slate-500 leading-relaxed mb-8">{initError}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-colors"
+                    >
+                        Coba Lagi
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
   // --- RENDER MAINTENANCE (BARU) ---
   if (view === "maintenance") return <MaintenanceScreen mode={siteMode} />;
