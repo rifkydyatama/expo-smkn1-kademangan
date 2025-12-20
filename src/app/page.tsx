@@ -238,7 +238,7 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
                     </div>
                     <h3 className="font-bold text-slate-800 text-lg group-hover/card:text-cyan-700 transition-colors">{c.name}</h3>
                     <p className="text-xs text-slate-400 mt-2 line-clamp-2 px-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
-                        {c.description || "Partner resmi pendidikan."}
+                        {c.description}
                     </p>
                 </div>
                 ))}
@@ -630,7 +630,7 @@ export default function Home() {
                           transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }} 
                           className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 leading-[0.9] mb-8 tracking-tighter"
                       >
-                          {config.hero_title || "LOADING..."}
+                          {config.hero_title}
                       </motion.h1>
                       
                       <motion.p 
@@ -639,7 +639,7 @@ export default function Home() {
                           transition={{ delay: 0.4 }} 
                           className="text-xl text-slate-600 mb-10 max-w-lg leading-relaxed border-l-4 border-cyan-500 pl-6"
                       >
-                          {config.hero_subtitle || "Mohon tunggu sebentar..."}
+                          {config.hero_subtitle}
                       </motion.p>
                       
                       <motion.div 
@@ -652,13 +652,13 @@ export default function Home() {
                               onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
                               className={`px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl transition-all hover:scale-105 flex items-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
                           >
-                              {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text || "Ambil Tiket"}
+                              {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text}
                               {config.status !== "CLOSED" && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>}
                           </button>
                           
                           <div className="flex items-center gap-3 px-8 py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm">
                                <Calendar className="w-5 h-5 text-cyan-500"/> 
-                               {config.event_date?.split(" ")[0] || "20"} {config.event_date?.split(" ")[1] || "MEI 2025"}
+                               {config.event_date}
                           </div>
                       </motion.div>
                       
@@ -730,7 +730,7 @@ export default function Home() {
             >
                 <motion.div style={{ y: yVideo }} className="relative">
                     <div 
-                        onClick={() => setVideoOpen(true)}
+                        onClick={() => config.youtube_video_id ? setVideoOpen(true) : showNotify("Video belum tersedia.", "error")}
                         className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-screen flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
                     >
                         <div className="absolute inset-0 bg-linear-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
@@ -791,8 +791,8 @@ export default function Home() {
                         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-50 rounded-full translate-x-1/3 -translate-y-1/3 group-hover:scale-125 transition-transform duration-700"></div>
                         <div className="relative z-10">
                             <span className="bg-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-6 inline-block">Highlight Utama</span>
-                            <h3 className="text-4xl font-black mb-4 mt-4 text-slate-900">Talkshow Industri</h3>
-                            <p className="text-slate-500 text-lg leading-relaxed">Diskusi panel eksklusif bersama HRD perusahaan multinasional dan alumni sukses. Pelajari skill yang paling dicari tahun 2025.</p>
+                            <h3 className="text-4xl font-black mb-4 mt-4 text-slate-900">{rundown?.[0]?.title}</h3>
+                            <p className="text-slate-500 text-lg leading-relaxed">{rundown?.[0]?.description}</p>
                         </div>
                         <div className="relative z-10 mt-12 flex -space-x-4">
                             {[1,2,3].map(i=><div key={i} className="w-14 h-14 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 shadow-md">User</div>)}
@@ -804,22 +804,22 @@ export default function Home() {
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
                         <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-600/30 rounded-full blur-3xl group-hover:bg-purple-600/50 transition-colors"></div>
                         <div className="relative z-10 max-w-xs">
-                            <h3 className="text-3xl font-bold mb-3">Grand Doorprize</h3>
-                            <p className="text-slate-300">Laptop Gaming, Tablet Grafis & Beasiswa Pendidikan Full Cover.</p>
+                            <h3 className="text-3xl font-bold mb-3">{rundown?.[1]?.title}</h3>
+                            <p className="text-slate-300">{rundown?.[1]?.description}</p>
                         </div>
                         <Award className="w-32 h-32 text-yellow-400 relative z-10 group-hover:rotate-12 group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
                     </motion.div>
 
                     <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-blue-50 border border-blue-100 p-8 hover:bg-blue-100 transition-colors flex flex-col justify-center">
                         <div className="w-12 h-12 bg-blue-200 text-blue-700 rounded-2xl flex items-center justify-center mb-4"><Sparkles size={24}/></div>
-                        <h3 className="text-xl font-bold text-blue-900 mb-2">Konsultasi Gratis</h3>
-                        <p className="text-blue-700/80 text-sm">Psikotes minat bakat di tempat.</p>
+                        <h3 className="text-xl font-bold text-blue-900 mb-2">{rundown?.[2]?.title}</h3>
+                        <p className="text-blue-700/80 text-sm">{rundown?.[2]?.description}</p>
                     </motion.div>
 
                     <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-white border border-slate-200 p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500 transition-colors group">
                         <Calendar className="w-10 h-10 text-cyan-500 mb-4 group-hover:scale-110 transition-transform" />
-                        <div className="text-4xl font-black text-slate-900">{config.event_date?.split(" ")[0] || "20"}</div>
-                        <div className="text-slate-400 font-bold text-sm uppercase tracking-widest">{config.event_date?.split(" ")[1] || "MEI 2025"}</div>
+                        <div className="text-4xl font-black text-slate-900">{typeof config.event_date === "string" ? config.event_date.split(" ")[0] : ""}</div>
+                        <div className="text-slate-400 font-bold text-sm uppercase tracking-widest">{typeof config.event_date === "string" ? config.event_date.split(" ").slice(1).join(" ") : ""}</div>
                     </motion.div>
                 </motion.div>
             </section>
@@ -1025,8 +1025,8 @@ export default function Home() {
                            <div>
                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Date</div>
                                <div className="font-black text-slate-800 text-xl flex flex-col leading-none">
-                                   <span>{config.event_date?.split(" ")[0] || "20"}</span>
-                                   <span className="text-xs text-slate-400 font-bold">{config.event_date?.split(" ")[1] || "MEI"}</span>
+                                   <span>{typeof config.event_date === "string" ? config.event_date.split(" ")[0] : ""}</span>
+                                   <span className="text-xs text-slate-400 font-bold">{typeof config.event_date === "string" ? config.event_date.split(" ").slice(1).join(" ") : ""}</span>
                                </div>
                            </div>
                            <div>
@@ -1078,13 +1078,19 @@ export default function Home() {
                className="w-full max-w-6xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 ring-1 ring-white/20"
                onClick={(e) => e.stopPropagation()}
              >
-                <iframe 
-                  className="w-full h-full" 
-                  src={`https://www.youtube.com/embed/${config.youtube_video_id || "jfKfPfyJRdk"}?autoplay=1&modestbranding=1&rel=0`} 
-                  title="Aftermovie" 
-                  allow="autoplay; encrypted-media" 
-                  allowFullScreen
-                />
+                                {config.youtube_video_id ? (
+                                    <iframe 
+                                        className="w-full h-full" 
+                                        src={`https://www.youtube.com/embed/${config.youtube_video_id}?autoplay=1&modestbranding=1&rel=0`} 
+                                        title="Aftermovie" 
+                                        allow="autoplay; encrypted-media" 
+                                        allowFullScreen
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/70 font-bold">
+                                        Video belum tersedia
+                                    </div>
+                                )}
              </motion.div>
           </motion.div>
         )}
