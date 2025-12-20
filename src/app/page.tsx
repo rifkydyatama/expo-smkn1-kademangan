@@ -279,6 +279,10 @@ export default function Home() {
       setNotification({ show: true, message, type: type as "info" | "error" }); // Fixed type assertion
     }, []);
 
+      useEffect(() => {
+          console.log('Logo URL:', config.event_logo_url);
+      }, [config.event_logo_url]);
+
   // Parallax Hooks
   const { scrollY } = useScroll();
   const yHero = useTransform(scrollY, [0, 500], [0, 200]);
@@ -565,7 +569,15 @@ export default function Home() {
                     onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
                 >
                     <div className="w-12 h-12 bg-linear-to-tr from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
-                        <Cpu className="w-7 h-7"/>
+                        {config.event_logo_url ? (
+                            <img
+                                src={config.event_logo_url}
+                                alt="Event Logo"
+                                className="w-8 h-8 object-contain"
+                            />
+                        ) : (
+                            <Cpu className="w-7 h-7"/>
+                        )}
                     </div>
                     <span className="text-slate-900 text-3xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
                 </div>
