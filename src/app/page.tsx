@@ -1,1095 +1,468 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect, useRef } from "react";
 import { 
-  LayoutDashboard, 
-  Users, 
-  MonitorPlay, 
+  motion, 
+  AnimatePresence, 
+  useScroll, 
+  useTransform, 
+  useInView,
+  Variants 
+} from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
+import { supabase } from "@/lib/supabase"; 
+import { 
+  Loader2, 
+  Sparkles, 
   School, 
+  Ticket, 
   Calendar, 
-  HelpCircle, 
-  LogOut, 
-  Search, 
-  Download, 
-  Save, 
-  Trash2, 
-  Plus, 
+  PlayCircle, 
+  Cpu, 
+  Globe, 
+  ChevronDown, 
   CheckCircle, 
-  XCircle, 
-  UploadCloud, 
-  RefreshCw, 
-  Settings, 
-  BarChart3, 
-  ChevronRight, 
-  ScanLine, 
-  AlertCircle,
-  UserCheck,
-  Youtube,
-  Lock,
-  Unlock,
-  Construction, // Icon Maintenance
-  Timer,        // Icon Coming Soon
-  Globe,        // Icon Live
-  Bell,         // Icon Notifikasi
-  ShieldCheck,  // Icon Secure Scanner
-  Image as ImageIcon // Icon Upload Image
+  Instagram, 
+  ArrowRight, 
+  Star, 
+  Quote, 
+  Zap, 
+  Award, 
+  Lock, 
+  Mic, 
+  X,
+  Info,
+  Construction,
+  Timer
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
-// --- 1. DEFINISI TIPE DATA (LENGKAP) ---
-type Participant = { 
-  id: number; 
-  name: string; 
-  origin_school: string; 
-  email: string; 
-  phone: string; 
-  created_at: string;
-  status: string;          // Status kehadiran (REGISTERED / CHECKED-IN)
-  check_in_time: string;   // Waktu scan barcode
-  ticket_code?: string;    // Kode UUID Unik
-};
-
-type Campus = { 
-  id: number; 
-  name: string; 
-  logo_url: string; 
-  description: string; 
-};
-
-type Rundown = { 
-  id: number; 
-  time: string; 
-  title: string; 
-  description: string; 
-};
-
-type Faq = { 
-  id: number; 
-  question: string; 
-  answer: string; 
-};
-
-export default function AdminPage() {
-  // --- 2. STATE MANAGEMENT ---
-  const [session, setSession] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  // Auth State
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  // Data State (Database)
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [rundown, setRundown] = useState<Rundown[]>([]);
-  const [faqs, setFaqs] = useState<Faq[]>([]);
-  const [settings, setSettings] = useState<any>({});
-  
-  // UI Helper State
-  const [search, setSearch] = useState("");
-  
-  // --- NOTIFIKASI STATE (CUSTOM POPUP) ---
-  const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
-
-  const showNotify = (message: string, type: "info" | "error" | "success" = "info") => {
-      setNotification({ show: true, message, type });
-      // Auto hide setelah 3 detik
-      setTimeout(() => {
-          setNotification({ show: false, message: "", type: "info" });
-      }, 3000);
-  };
-
-  // --- 3. STATE KHUSUS FITUR ---
-  
-  // A. State untuk Gate Scanner
-  const [scanId, setScanId] = useState("");
-  const [scanResult, setScanResult] = useState<any>(null);
-  const [scanStatus, setScanStatus] = useState<"IDLE" | "SUCCESS" | "ERROR" | "USED">("IDLE");
-
-  // B. State untuk Data Master (Input Baru)
-  const [newRundown, setNewRundown] = useState({ time: "", title: "", description: "" });
-  const [newFaq, setNewFaq] = useState({ question: "", answer: "" });
-
-  // C. State untuk Upload Kampus & Logo
-  const [newCampusName, setNewCampusName] = useState("");
-  const [newCampusDesc, setNewCampusDesc] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null); // Logo Kampus
-  const [mainLogoFile, setMainLogoFile] = useState<File | null>(null); // Main Logo Website
-  const [uploading, setUploading] = useState(false);
-
-  // --- 4. LOGIN SYSTEM ---
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Hardcoded credentials (bisa diganti nanti)
-    if (email === "admin" && password === "admin123") {
-      setSession(true);
-      fetchAllData();
-      showNotify("Berhasil Login! Selamat datang Admin.", "success");
-    } else { 
-      showNotify("Akses Ditolak! Username atau Password salah.", "error");
-    }
-  };
-
-  // --- 5. DATA FETCHING (REAL-TIME REFRESH) ---
-  const fetchAllData = async () => {
-    setRefreshing(true);
-    try {
-        // 1. Settings
-        const { data: s } = await supabase.from("event_settings").select("*");
-        const conf: any = {}; 
-        s?.forEach(item => conf[item.key] = item.value); 
-        
-        if (!conf.site_mode) conf.site_mode = "LIVE";
-        if (!conf.status) conf.status = "OPEN";
-
-        setSettings(conf);
-
-        // 2. Participants
-        const { data: p } = await supabase.from("participants").select("*").order('id', { ascending: false });
-        if(p) setParticipants(p);
-
-        // 3. Campuses
-        const { data: c } = await supabase.from("event_campuses").select("*").order('id'); 
-        if(c) setCampuses(c);
-        
-        // 4. Rundown
-        const { data: r } = await supabase.from("event_rundown").select("*").order('id'); 
-        if(r) setRundown(r);
-
-        // 5. FAQ
-        const { data: f } = await supabase.from("event_faq").select("*").order('id'); 
-        if(f) setFaqs(f);
-
-    } catch (error) {
-        console.error("Gagal mengambil data:", error);
-        showNotify("Gagal koneksi ke database.", "error");
-    } finally {
-        setRefreshing(false);
-    }
-  };
-
-  // --- 6. FITUR: GATE CHECK-IN (SCANNER LOGIC) ---
-  const handleCheckIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setScanResult(null);
-    
-    let cleanId = scanId.trim();
-    if (cleanId.toUpperCase().startsWith("EXPO-")) cleanId = cleanId.replace(/EXPO-/i, "");
-
-    if (!cleanId) {
-        setLoading(false);
-        return;
-    }
-
-    // Logic pencarian Hybrid (ID Angka atau UUID)
-    let user = null;
-    
-    if (!isNaN(Number(cleanId))) {
-         const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
-         user = data;
+// --- 1. OPTIMIZED ANIMATION VARIANTS (LEBIH RINGAN) ---
+const fadeUpVariant: Variants = {
+  hidden: { opacity: 0, y: 30 }, // Jarak y dikurangi biar render lebih cepat
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.6, // Dipercepat dari 0.8 jadi 0.6 biar snappy
+      ease: "easeOut" 
     } 
-    
-    if (!user) {
-         const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
-         user = data;
+  }
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
     }
+  }
+};
 
-    if (!user) {
-        setScanStatus("ERROR"); 
-        showNotify("Tiket TIDAK VALID / Tidak Ditemukan!", "error");
-    } else if (user.status === "CHECKED-IN") {
-        setScanResult(user);
-        setScanStatus("USED");
-        showNotify(`Tiket a.n ${user.name} SUDAH DIGUNAKAN!`, "error");
-    } else {
-        await supabase
-            .from("participants")
-            .update({ 
-                status: "CHECKED-IN", 
-                check_in_time: new Date().toISOString() 
-            })
-            .eq("id", user.id); 
-        
-        setScanResult(user);
-        setScanStatus("SUCCESS");
-        showNotify(`Check-in Berhasil: ${user.name}`, "success");
-        fetchAllData(); 
-    }
-    
-    setScanId(""); 
-    setLoading(false);
-  };
+// --- 2. COMPONENT: ANIMATED COUNTER ---
+const Counter = ({ to }: { to: number }) => {
+  const nodeRef = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(nodeRef, { once: true }); // Hanya jalan sekali
+  
+  useEffect(() => {
+    if (!isInView) return;
+    const duration = 1500; // Durasi dipercepat
+    const startTime = performance.now();
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4); 
+      const currentVal = Math.floor(ease * to);
+      if (nodeRef.current) nodeRef.current.textContent = currentVal.toLocaleString();
+      if (progress < 1) requestAnimationFrame(animate);
+      else { if (nodeRef.current) nodeRef.current.textContent = to.toLocaleString(); }
+    };
+    requestAnimationFrame(animate);
+  }, [to, isInView]);
+  return <span ref={nodeRef} className="tabular-nums">0</span>;
+};
 
-  // --- 7. FITUR: UPLOAD GAMBAR ---
-  const handleUploadImage = async (file: File): Promise<string | null> => {
-    try {
-        // Sanitasi nama file
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        // Upload
-        const { error: uploadError } = await supabase.storage
-            .from('campus-logos')
-            .upload(fileName, file, { cacheControl: '3600', upsert: false });
+// --- 3. COMPONENT: BACKGROUND (GPU ACCELERATED) ---
+const TechBackground = () => (
+  <div className="fixed inset-0 z-[-1] overflow-hidden bg-slate-50 selection:bg-cyan-300 selection:text-cyan-900 pointer-events-none transform-gpu">
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+    {/* Will-change transform added for performance */}
+    <motion.div animate={{ x: [0, 100, 0], y: [0, -50, 0], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-400/10 rounded-full blur-[80px] mix-blend-multiply will-change-transform" />
+    <motion.div animate={{ x: [0, -100, 0], y: [0, 50, 0], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-400/10 rounded-full blur-[80px] mix-blend-multiply will-change-transform" />
+  </div>
+);
 
-        if (uploadError) throw uploadError;
-
-        // Get URL
-        const { data } = supabase.storage
-            .from('campus-logos')
-            .getPublicUrl(fileName);
-
-        return data.publicUrl;
-    } catch (error: any) {
-        showNotify("Gagal Upload Gambar: " + error.message, "error");
-        return null;
-    }
-  };
-
-  // Upload Main Logo Website
-  const handleUpdateMainLogo = async () => {
-     if (!mainLogoFile) return showNotify("Pilih gambar logo dulu!", "error");
-     setLoading(true);
-     
-     const url = await handleUploadImage(mainLogoFile);
-     
-     if (url) {
-         await supabase.from("event_settings").upsert({ key: "event_logo_url", value: url }, { onConflict: 'key' });
-         setMainLogoFile(null);
-         showNotify("Logo Website Berhasil Diupdate!", "success");
-         fetchAllData();
-     }
-     setLoading(false);
-  };
-
-  // --- 8. CRUD ACTIONS ---
-  const saveSettings = async () => {
-    setLoading(true);
-    for (const [key, value] of Object.entries(settings)) {
-       await supabase.from("event_settings").upsert({ key, value: String(value) }, { onConflict: 'key' });
-    }
-    setLoading(false); 
-    showNotify("✅ Semua konfigurasi berhasil disimpan!", "success"); 
-    fetchAllData();
-  };
-
-  const addCampus = async () => {
-    if (!newCampusName) return showNotify("⚠️ Nama Kampus Wajib Diisi!", "error");
-    setUploading(true);
-    
-    let finalUrl = "";
-    if (logoFile) {
-        const url = await handleUploadImage(logoFile);
-        if (url) finalUrl = url;
-    }
-
-    const { error } = await supabase.from("event_campuses").insert({
-        name: newCampusName,
-        description: newCampusDesc,
-        logo_url: finalUrl
-    });
-
-    if (error) showNotify("Gagal simpan kampus: " + error.message, "error");
-    else {
-        setNewCampusName(""); 
-        setNewCampusDesc(""); 
-        setLogoFile(null); 
-        showNotify("Data Kampus berhasil ditambahkan!", "success");
-        fetchAllData();
-    }
-    setUploading(false);
-  };
-
-  const addItem = async (table: string, data: any) => {
-    await supabase.from(table).insert(data);
-    setNewRundown({time:"", title:"", description:""}); 
-    setNewFaq({question:"", answer:""});
-    showNotify("Data berhasil ditambahkan!", "success");
-    fetchAllData();
-  };
-
-  const deleteItem = async (table: string, id: number) => {
-    if(confirm("⚠️ Hapus data ini permanen?")) {
-        await supabase.from(table).delete().eq("id", id);
-        showNotify("Data berhasil dihapus.", "success");
-        fetchAllData();
-    }
-  };
-
-  const downloadCSV = () => {
-    const headers = ["ID,UUID,Nama,Sekolah,Email,No HP,Status,Waktu Check-in"];
-    const rows = participants.map(p => 
-        `${p.id},"${p.ticket_code || '-'}","${p.name}","${p.origin_school}","${p.email}","${p.phone}","${p.status}","${p.check_in_time || "-"}"`
-    );
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
-    const link = document.createElement("a");
-    link.href = encodeURI(csvContent); 
-    link.download = `Laporan_Peserta_${new Date().toISOString().split('T')[0]}.csv`; 
-    link.click();
-    showNotify("Laporan CSV berhasil diunduh!", "success");
-  };
-
-  // --- 9. RENDER UI: LOGIN PAGE ---
-  if (!session) return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Toast Notification for Login */}
-      <AnimatePresence>
-        {notification.show && (
-            <motion.div 
-                initial={{ opacity: 0, y: -50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -50 }}
-                className={`fixed top-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 z-50 font-bold text-sm ${
-                    notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-                }`}
-            >
-                {notification.type === 'error' ? <AlertCircle size={18}/> : <CheckCircle size={18}/>}
-                {notification.message}
-            </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-cyan-500 to-blue-600"></div>
-        <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-cyan-500/20 rotate-3">
-                <Settings size={40}/>
-            </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">ADMIN 5.0 PRO</h1>
-            <p className="text-slate-500 text-sm mt-2 font-medium">SMKN 1 Kademangan Expo Control</p>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-                <label className="text-xs font-bold text-slate-400 uppercase ml-1 mb-1 block">Username</label>
-                <input 
-                  autoFocus 
-                  type="text" 
-                  onChange={e => setEmail(e.target.value)} 
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition-all text-slate-800"
-                />
-            </div>
-            <div>
-                <label className="text-xs font-bold text-slate-400 uppercase ml-1 mb-1 block">Password</label>
-                <input 
-                  type="password" 
-                  onChange={e => setPassword(e.target.value)} 
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition-all text-slate-800"
-                />
-            </div>
-            <button className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 mt-4">
-                MASUK DASHBOARD
-            </button>
-        </form>
-        <p className="text-center text-xs text-slate-300 mt-8">System v9.0 (Secure & Notif)</p>
-      </div>
-    </div>
-  );
-
-  // --- 10. RENDER UI: DASHBOARD (MAIN) ---
-  return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+// --- 4. COMPONENT: MAINTENANCE / COMING SOON SCREEN ---
+const MaintenanceScreen = ({ mode }: { mode: string }) => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden p-6 text-center">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
       
-      {/* GLOBAL NOTIFICATION TOAST */}
-      <AnimatePresence>
-        {notification.show && (
-            <motion.div 
-                initial={{ opacity: 0, y: 50, x: 50 }}
-                animate={{ opacity: 1, y: 0, x: 0 }}
-                exit={{ opacity: 0, y: 50, x: 50 }}
-                className={`fixed bottom-10 right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-100 border-l-8 ${
-                    notification.type === 'error' ? 'bg-white border-red-500 text-red-600' : 
-                    notification.type === 'success' ? 'bg-white border-green-500 text-green-600' :
-                    'bg-slate-900 border-cyan-500 text-white'
-                }`}
-            >
-                <div className={`p-2 rounded-full ${
-                    notification.type === 'error' ? 'bg-red-100' : 
-                    notification.type === 'success' ? 'bg-green-100' :
-                    'bg-slate-800'
-                }`}>
-                    {notification.type === 'error' ? <AlertCircle size={20}/> : 
-                     notification.type === 'success' ? <CheckCircle size={20}/> : 
-                     <Bell size={20}/>}
+      <motion.div 
+        animate={{ opacity: [0.3, 0.5, 0.3] }} 
+        transition={{ duration: 3, repeat: Infinity }} 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[100px]"
+      />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.8 }}
+        className="relative z-10 max-w-2xl"
+      >
+          <div className="mb-8 flex justify-center">
+              {mode === 'MAINTENANCE' ? (
+                  <div className="w-24 h-24 bg-yellow-500/20 rounded-3xl flex items-center justify-center border border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+                      <Construction className="w-12 h-12 text-yellow-400" />
+                  </div>
+              ) : (
+                  <div className="w-24 h-24 bg-cyan-500/20 rounded-3xl flex items-center justify-center border border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                      <Timer className="w-12 h-12 text-cyan-400" />
+                  </div>
+              )}
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
+              {mode === 'MAINTENANCE' ? "UNDER MAINTENANCE" : "COMING SOON"}
+          </h1>
+          
+          <p className="text-xl text-slate-300 mb-10 leading-relaxed">
+              {mode === 'MAINTENANCE' 
+                ? "Sistem sedang dalam perbaikan berkala untuk meningkatkan performa. Kami akan segera kembali." 
+                : "Kami sedang menyiapkan sesuatu yang luar biasa untuk Expo SMKN 1 Kademangan tahun ini. Tunggu tanggal mainnya!"}
+          </p>
+
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-bold tracking-widest uppercase text-slate-300">System Offline</span>
+          </div>
+      </motion.div>
+  </div>
+);
+
+// --- 5. COMPONENT: CAMPUS MARQUEE ---
+const CampusMarquee = ({ items }: { items: any[] }) => {
+  if (!items || items.length === 0) return null;
+  // Reduce items repetition for performance if list is long
+  const marqueeItems = [...items, ...items, ...items, ...items];
+  return (
+    <section className="py-20 bg-white/80 backdrop-blur-md border-y border-slate-200 overflow-hidden relative z-20">
+        <div className="max-w-7xl mx-auto px-6 mb-10 text-center">
+             <motion.span 
+               initial={{ opacity: 0, y: 10 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true }} // PERFORMANCE FIX
+               className="text-cyan-600 font-bold tracking-[0.3em] uppercase text-xs block mb-3"
+             >
+               Official Partners
+             </motion.span>
+             <motion.h2 
+               initial={{ opacity: 0, y: 10 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true }} // PERFORMANCE FIX
+               transition={{ delay: 0.1 }}
+               className="text-3xl font-black text-slate-900"
+             >
+               Didukung Oleh Kampus Ternama
+             </motion.h2>
+        </div>
+        <div className="w-full overflow-hidden relative">
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <motion.div className="flex gap-8 w-max px-6" animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 40, ease: "linear" }}>
+                {marqueeItems.map((c, i) => (
+                <div key={i} className="flex-shrink-0 w-72 p-8 bg-white border border-slate-100 rounded-[2rem] shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="h-24 w-full flex items-center justify-center mb-6">
+                        {c.logo_url ? (<img src={c.logo_url} alt={c.name} loading="lazy" className="max-h-full max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-500 scale-90 hover:scale-110" />) : (<School className="w-16 h-16 text-slate-300 hover:text-cyan-500 transition-colors"/>)}
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-lg hover:text-cyan-700 transition-colors">{c.name}</h3>
                 </div>
-                <div>
-                    <h4 className="font-bold text-sm uppercase">{notification.type === 'error' ? 'Gagal' : notification.type === 'success' ? 'Berhasil' : 'Info'}</h4>
-                    <p className="text-xs font-medium opacity-90">{notification.message}</p>
-                </div>
-                <button onClick={() => setNotification({ ...notification, show: false })}><XCircle size={18} className="opacity-50 hover:opacity-100"/></button>
+                ))}
             </motion.div>
+        </div>
+    </section>
+  );
+};
+
+// --- 6. MAIN COMPONENT ---
+export default function Home() {
+  const [isChecking, setIsChecking] = useState(true);
+  const [view, setView] = useState<"landing" | "register" | "ticket" | "maintenance">("landing");
+  const [siteMode, setSiteMode] = useState("LIVE");
+  
+  const [config, setConfig] = useState<any>({});
+  const [campuses, setCampuses] = useState<any[]>([]);
+  const [rundown, setRundown] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [realCounts, setRealCounts] = useState({ participants: 0, campuses: 0 });
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", origin_school: "", phone: "" });
+  const [ticketData, setTicketData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  
+  // STATE NOTIFIKASI
+  const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
+  const showNotify = (message: string, type: "info" | "error" = "info") => {
+      setNotification({ show: true, message, type });
+  };
+
+  const { scrollY } = useScroll();
+  const yHero = useTransform(scrollY, [0, 500], [0, 200]);
+  const opacityHero = useTransform(scrollY, [0, 300], [1, 0]);
+  const yVideo = useTransform(scrollY, [500, 1000], [50, -50]);
+
+  useEffect(() => {
+    const initSystem = async () => {
+        try {
+            const [settingsRes, campusesRes, rundownRes, faqRes] = await Promise.all([
+                supabase.from("event_settings").select("*"),
+                supabase.from("event_campuses").select("*").order('id'),
+                supabase.from("event_rundown").select("*").order('id'),
+                supabase.from("event_faq").select("*").order('id')
+            ]);
+            
+            const { count: pCount } = await supabase.from("participants").select("*", { count: 'exact', head: true });
+
+            if (settingsRes.data) { 
+                const conf: any = {}; 
+                settingsRes.data.forEach((i) => conf[i.key] = i.value); 
+                setConfig(conf);
+                
+                // CEK MODE SITUS
+                if (conf.site_mode === 'MAINTENANCE' || conf.site_mode === 'COMING_SOON') {
+                    setSiteMode(conf.site_mode);
+                    setView("maintenance");
+                    setIsChecking(false);
+                    return; 
+                }
+            }
+            
+            if (campusesRes.data) setCampuses(campusesRes.data);
+            if (rundownRes.data) setRundown(rundownRes.data);
+            if (faqRes.data) setFaqs(faqRes.data);
+            setRealCounts({ participants: pCount || 0, campuses: campusesRes.data?.length || 0 });
+            
+            const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
+            if (savedTicketID) {
+                // Pastikan mengambil tanda bintang (*) agar ticket_code terambil
+                const { data } = await supabase.from("participants").select("*").eq("id", savedTicketID).single();
+                if (data) { setTicketData(data); setView("ticket"); } else { localStorage.removeItem("smkn1_expo_ticket_id"); setView("landing"); }
+            }
+        } catch (error) { console.error("Init Error:", error); } finally { setIsChecking(false); }
+    };
+    initSystem();
+  }, []);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true);
+    const { data: existing } = await supabase.from("participants").select("id").or(`email.eq.${formData.email},phone.eq.${formData.phone}`).maybeSingle();
+    if (existing) { showNotify("Email atau Nomor HP ini sudah terdaftar!", "error"); setLoading(false); return; }
+    const { data, error } = await supabase.from("participants").insert([formData]).select().single();
+    if (error) { showNotify("Gagal: " + error.message, "error"); setLoading(false); } 
+    else { localStorage.setItem("smkn1_expo_ticket_id", data.id); setTicketData(data); setTimeout(() => { setLoading(false); setView("ticket"); }, 1500); }
+  };
+
+  const resetDevice = () => { if(confirm("Reset device ini?")) { localStorage.removeItem("smkn1_expo_ticket_id"); window.location.reload(); } }
+
+  if (isChecking) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-12 h-12 text-cyan-600 animate-spin"/></div>;
+
+  if (view === "maintenance") return <MaintenanceScreen mode={siteMode} />;
+
+  return (
+    <main className="min-h-screen font-sans text-slate-800 relative selection:bg-cyan-200 selection:text-cyan-900">
+      <TechBackground />
+      {view !== "ticket" && config.announcement && <motion.div initial={{ y: -50 }} animate={{ y: 0 }} className="bg-slate-900 text-white text-xs font-bold py-3 text-center sticky top-0 z-[60] shadow-xl">INFO: {config.announcement}</motion.div>}
+      
+      {view !== "ticket" && (
+        <nav className="sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-24 transition-all">
+            <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+                
+                {/* --- LOGO DINAMIS (UPDATED) --- */}
+                <div 
+                    className="flex items-center gap-4 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
+                    onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+                >
+                    {config.event_logo_url ? (
+                        // Jika ada logo di database, tampilkan
+                        <img 
+                          src={config.event_logo_url} 
+                          alt="Event Logo" 
+                          className="h-12 w-auto object-contain hover:scale-105 transition-transform" 
+                        />
+                    ) : (
+                        // Jika tidak ada, tampilkan default
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
+                                <Cpu className="w-6 h-6"/>
+                            </div>
+                            <span className="text-slate-900 text-2xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
+                        </div>
+                    )}
+                </div>
+                {/* ----------------------------- */}
+
+                {view === "landing" && <button onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} className={`hidden md:flex px-8 py-4 rounded-full font-bold transition-all shadow-xl hover:-translate-y-1 items-center gap-3 text-sm ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white hover:bg-cyan-600"}`}>{config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}</button>}
+            </div>
+        </nav>
+      )}
+
+      <AnimatePresence mode="wait">
+        {view === "landing" && (
+          <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <section className="relative pt-12 pb-32 px-6 max-w-7xl mx-auto min-h-[90vh] flex flex-col justify-center overflow-visible">
+              <div className="grid md:grid-cols-2 gap-16 items-center">
+                  <motion.div style={{ y: yHero, opacity: opacityHero }} className="relative z-10">
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/60 border border-white rounded-full text-cyan-700 text-xs font-bold mb-8 backdrop-blur-sm shadow-sm ring-1 ring-cyan-100">Official Event SMKN 1 Kademangan</div>
+                      <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 leading-[0.9] mb-8 tracking-tighter">{config.hero_title || "LOADING..."}</h1>
+                      <p className="text-xl text-slate-600 mb-10 max-w-lg leading-relaxed border-l-4 border-cyan-500 pl-6">{config.hero_subtitle || "Mohon tunggu sebentar..."}</p>
+                      <div className="flex flex-wrap gap-4">
+                          <button onClick={() => config.status === "CLOSED" ? showNotify("Pendaftaran Ditutup!", "error") : setView("register")} className={`px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl transition-all hover:scale-105 flex items-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400" : "bg-slate-900 text-white"}`}>{config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Ambil Tiket"}</button>
+                          <div className="flex items-center gap-3 px-8 py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm"><Calendar className="w-5 h-5 text-cyan-500"/> {config.event_date?.split(" ")[0]} {config.event_date?.split(" ")[1]}</div>
+                      </div>
+                      <div className="mt-20 flex flex-wrap gap-12 border-t border-slate-200 pt-10">
+                          <div><div className="text-5xl font-black text-slate-900 flex items-baseline"><Counter to={realCounts.campuses}/><span className="text-cyan-600 text-3xl ml-1">+</span></div><div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Kampus</div></div>
+                          <div><div className="text-5xl font-black text-slate-900 flex items-baseline"><Counter to={realCounts.participants}/><span className="text-cyan-600 text-3xl ml-1">+</span></div><div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Peserta</div></div>
+                          <div><div className="text-5xl font-black text-slate-900 flex items-baseline"><Counter to={parseInt(config.stats_speakers || 0)}/></div><div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Speakers</div></div>
+                      </div>
+                  </motion.div>
+                  <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1 }} className="relative h-[650px] hidden md:block perspective-1000">
+                      <motion.div animate={{ y: [0, -30, 0], rotateX: [0, 5, 0], rotateY: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }} className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-700 rounded-[3rem] shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white/20">
+                          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                          <div className="relative z-10 text-center text-white p-10"><Cpu className="w-32 h-32 text-white drop-shadow-lg mx-auto mb-6" /><h3 className="text-5xl font-black mb-3 tracking-tight">Society 5.0</h3><p className="text-cyan-100 text-xl font-medium tracking-wide">Integrated Education Ecosystem</p></div>
+                      </motion.div>
+                  </motion.div>
+              </div>
+            </section>
+
+            <CampusMarquee items={campuses} />
+
+            <motion.section 
+                initial="hidden" 
+                whileInView="visible" 
+                viewport={{ once: true }}  // PERFORMANCE FIX
+                variants={fadeUpVariant} 
+                className="py-32 px-6 max-w-7xl mx-auto"
+            >
+                <motion.div style={{ y: yVideo }} className="relative">
+                    <div onClick={() => setVideoOpen(true)} className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-[600px] flex items-center justify-center group cursor-pointer shadow-2xl">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
+                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-[1.5s]"></div>
+                        <div className="relative z-10 text-center p-10">
+                            <motion.div whileHover={{ scale: 1.2, rotate: 90 }} className="w-32 h-32 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 mb-8 mx-auto hover:bg-cyan-500/80 transition-all"><PlayCircle className="w-14 h-14 text-white ml-2 fill-white/20" /></motion.div>
+                            <h2 className="text-5xl md:text-7xl font-black text-white mb-6">AFTERMOVIE 2024</h2>
+                            <p className="text-slate-300 text-2xl font-light">Saksikan keseruan tahun lalu.</p>
+                        </div>
+                    </div>
+                </motion.div>
+            </motion.section>
+
+            <section className="py-24 bg-white relative overflow-hidden">
+                <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+                    <Quote className="w-20 h-20 text-cyan-100 mx-auto mb-10" />
+                    <h3 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-12 italic">"{config.headmaster_quote}"</h3>
+                    <div className="inline-flex items-center gap-6 bg-slate-50 px-8 py-4 rounded-full border border-slate-100 shadow-sm"><div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg text-white"><Mic className="w-8 h-8"/></div><div className="text-left"><div className="font-bold text-slate-900 text-xl">{config.headmaster_name}</div><div className="text-cyan-600 font-bold text-sm tracking-wider uppercase">Kepala SMKN 1 Kademangan</div></div></div>
+                </div>
+            </section>
+
+            <section className="py-32 px-6 max-w-7xl mx-auto">
+                <motion.div 
+                    initial="hidden" 
+                    whileInView="visible" 
+                    viewport={{ once: true }} // PERFORMANCE FIX
+                    variants={staggerContainer} 
+                    className="grid grid-cols-1 md:grid-cols-4 gap-6 h-auto md:h-[600px]"
+                >
+                    <motion.div variants={fadeUpVariant} className="md:col-span-2 md:row-span-2 rounded-[2.5rem] bg-white border border-slate-200 p-10 flex flex-col justify-between shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative"><div className="relative z-10"><span className="bg-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-6 inline-block">Highlight Utama</span><h3 className="text-4xl font-black mb-4 mt-4 text-slate-900">Talkshow Industri</h3><p className="text-slate-500 text-lg leading-relaxed">Diskusi panel eksklusif bersama HRD perusahaan multinasional.</p></div><div className="relative z-10 mt-12 flex -space-x-4">{[1,2,3].map(i=><div key={i} className="w-14 h-14 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 shadow-md">User</div>)}<div className="w-14 h-14 rounded-full border-4 border-white bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-md">+50</div></div></motion.div>
+                    <motion.div variants={fadeUpVariant} className="md:col-span-2 rounded-[2.5rem] bg-slate-900 text-white p-10 flex flex-col md:flex-row items-center justify-between shadow-xl relative overflow-hidden group"><div className="relative z-10 max-w-xs"><h3 className="text-3xl font-bold mb-3">Grand Doorprize</h3><p className="text-slate-300">Laptop Gaming, Tablet Grafis & Beasiswa.</p></div><Award className="w-32 h-32 text-yellow-400 relative z-10 group-hover:rotate-12 transition-transform" /></motion.div>
+                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-blue-50 border border-blue-100 p-8 hover:bg-blue-100 transition-colors flex flex-col justify-center"><div className="w-12 h-12 bg-blue-200 text-blue-700 rounded-2xl flex items-center justify-center mb-4"><Sparkles size={24}/></div><h3 className="text-xl font-bold text-blue-900 mb-2">Konsultasi Gratis</h3><p className="text-blue-700/80 text-sm">Psikotes minat bakat di tempat.</p></motion.div>
+                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-white border border-slate-200 p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500 transition-colors group"><Calendar className="w-10 h-10 text-cyan-500 mb-4" /><div className="text-4xl font-black text-slate-900">{config.event_date?.split(" ")[0] || "20"}</div><div className="text-slate-400 font-bold text-sm uppercase tracking-widest">{config.event_date?.split(" ")[1] || "MEI 2025"}</div></motion.div>
+                </motion.div>
+            </section>
+
+            <section className="py-32 px-6 bg-white border-y border-slate-100 relative">
+                <div className="max-w-4xl mx-auto"><div className="text-center mb-20"><h2 className="text-4xl font-black text-slate-900 mt-2">RUNDOWN ACARA</h2></div>
+                <div className="relative border-l-4 border-slate-100 ml-6 md:ml-0 space-y-16">
+                    {rundown.map((item, i) => (
+                        <motion.div 
+                            initial={{opacity:0, x:-50}} 
+                            whileInView={{opacity:1, x:0}} 
+                            viewport={{ once: true }} // PERFORMANCE FIX
+                            transition={{delay: i*0.1}} 
+                            key={i} 
+                            className="relative pl-12 md:pl-24 group"
+                        >
+                            <div className="absolute left-[-11px] top-0 w-6 h-6 bg-white border-4 border-cyan-500 rounded-full z-10 shadow-lg"></div><div className="absolute left-16 md:left-[-120px] top-[-5px] md:w-24 font-black text-2xl md:text-xl text-slate-300 text-right">{item.time}</div><div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 group-hover:border-cyan-200 transition-all"><h3 className="text-2xl font-bold text-slate-900">{item.title}</h3><p className="text-slate-500 mt-2 text-lg">{item.description}</p></div>
+                        </motion.div>
+                    ))}
+                </div></div>
+            </section>
+
+            <section className="py-32 px-6 max-w-3xl mx-auto">
+                <h2 className="text-4xl font-bold text-slate-900 text-center mb-16">Pertanyaan Umum</h2>
+                <div className="space-y-6">
+                    {faqs.map((f, i) => (
+                        <motion.div 
+                            initial={{opacity:0, y:20}} 
+                            whileInView={{opacity:1, y:0}} 
+                            viewport={{ once: true }} // PERFORMANCE FIX
+                            key={i} 
+                            className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm hover:shadow-lg transition-all duration-300"
+                        >
+                            <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full py-6 px-8 flex justify-between items-center text-left bg-white hover:bg-slate-50 transition-colors"><span className="font-bold text-slate-800 text-lg flex items-center gap-4"><span className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-sm font-black">Q</span> {f.question}</span><ChevronDown size={18} className={`transition-transform duration-300 ${openFaq===i ? "rotate-180" : ""}`} /></button><AnimatePresence>{openFaq === i && (<motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="bg-slate-50 border-t border-slate-100"><div className="p-8 text-slate-600 leading-relaxed text-lg">{f.answer}</div></motion.div>)}</AnimatePresence>
+                        </motion.div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="py-32 px-6 bg-slate-900 text-center relative overflow-hidden">
+                <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }} 
+                    whileInView={{ scale: 1, opacity: 1 }} 
+                    viewport={{ once: true }} // PERFORMANCE FIX
+                    className="relative z-10 max-w-4xl mx-auto"
+                >
+                    <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">Siap Bergabung?</h2>
+                    <button onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white"}`}>{config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftarkan Diriku Sekarang"}</button><p className="mt-8 text-slate-600 text-sm font-mono">© 2025 SMKN 1 Kademangan Expo Team.</p>
+                </motion.div>
+            </section>
+          </motion.div>
+        )}
+
+        {view === "register" && (
+          <motion.div key="register" initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"><div className="w-full max-w-lg bg-white p-8 md:p-10 md:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl h-[95vh] md:h-auto overflow-y-auto relative border border-white/20"><div className="flex justify-between items-center mb-8"><div><h2 className="text-3xl font-black text-slate-900">Registrasi</h2><p className="text-slate-500 text-sm">Isi data diri dengan benar.</p></div><button onClick={() => setView("landing")} className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors text-xl">✕</button></div><div className="bg-blue-50 p-6 rounded-2xl mb-8 flex gap-4 items-start border border-blue-100 shadow-inner"><div className="bg-blue-100 p-2 rounded-lg text-blue-600"><Lock size={20}/></div><p className="text-sm text-blue-800 font-medium leading-relaxed"><strong className="block mb-1 text-blue-900">Device Lock System</strong>Tiket akan terkunci otomatis di perangkat ini.</p></div><form onSubmit={handleRegister} className="space-y-6">{["Name", "School Origin", "Email", "Phone"].map((l, i) => (<div key={i}><label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1 tracking-wider">{l}</label><input required type={l==="Email"?"email":"text"} placeholder={`Masukkan ${l}`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-5 py-4 font-bold text-slate-900 outline-none focus:border-cyan-500 focus:bg-white transition-all" onChange={e => setFormData({...formData, [l==="Name"?"name":l==="School Origin"?"origin_school":l==="Email"?"email":"phone"]: e.target.value})} /></div>))}<button disabled={loading} className="w-full mt-8 bg-slate-900 text-white font-bold py-5 rounded-2xl flex justify-center items-center gap-3 hover:bg-cyan-600 transition-all shadow-xl disabled:opacity-70">{loading ? <Loader2 className="animate-spin" /> : <>Konfirmasi & Dapatkan Tiket <ArrowRight size={20}/></>}</button></form></div></motion.div>
+        )}
+
+        {/* Updated Ticket View with UUID and Dynamic Logo */}
+        {view === "ticket" && ticketData && (
+          <motion.div key="ticket" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"><div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative transform transition-transform hover:scale-[1.01] duration-500"><div className="bg-gradient-to-br from-cyan-600 via-blue-600 to-purple-600 p-10 text-center text-white relative overflow-hidden"><div className="relative z-10"><div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-4 border border-white/30 shadow-lg"><Star className="w-3 h-3 text-yellow-300 fill-yellow-300"/> VIP Access Pass</div><h2 className="text-3xl font-black tracking-wide drop-shadow-md">E-TICKET</h2></div></div><div className="p-10 flex flex-col items-center gap-8 relative bg-white"><div className="p-4 border-2 border-dashed border-slate-300 rounded-3xl relative group cursor-pointer bg-slate-50 shadow-inner">
+            {/* Pakai UUID kalau ada, fallback ke ID biasa */}
+            <QRCodeSVG value={ticketData.ticket_code || `EXPO-${ticketData.id}`} size={180} />
+            </div><div className="text-center w-full"><h3 className="text-2xl font-black text-slate-900 uppercase truncate mb-1">{ticketData.name}</h3><p className="text-cyan-600 font-bold text-sm bg-cyan-50 inline-block px-3 py-1 rounded-lg border border-cyan-100">{ticketData.origin_school}</p></div></div><div className="bg-slate-50 p-5 text-center border-t border-slate-200"><p className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> DEVICE VERIFIED & SECURE</p></div></div><button onClick={resetDevice} className="mt-8 px-8 py-3 rounded-full border border-slate-300 text-slate-400 text-xs font-bold hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all uppercase tracking-wider">Reset Device ID (Dev Mode)</button></motion.div>
+        )}
+
+        {/* CUSTOM POPUP NOTIFIKASI */}
+        {notification.show && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setNotification({ ...notification, show: false })}>
+            <motion.div initial={{ scale: 0.8, y: 50 }} animate={{ scale: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center relative overflow-hidden border border-white/20" onClick={(e) => e.stopPropagation()}>
+               <div className={`absolute top-0 left-0 w-full h-2 ${notification.type === 'error' ? 'bg-red-500' : 'bg-cyan-500'}`}></div>
+               <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${notification.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-cyan-50 text-cyan-600'}`}>{notification.type === 'error' ? <Lock size={40} /> : <Info size={40} />}</div>
+               <h3 className="text-2xl font-black text-slate-900 mb-2">{notification.type === 'error' ? 'Akses Ditolak' : 'Informasi'}</h3>
+               <p className="text-slate-500 leading-relaxed mb-8">{notification.message}</p>
+               <button onClick={() => setNotification({ ...notification, show: false })} className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] shadow-lg ${notification.type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-900 hover:bg-slate-800'}`}>Mengerti, Tutup</button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* VIDEO POPUP */}
+        {videoOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4" onClick={() => setVideoOpen(false)}>
+             <button onClick={() => setVideoOpen(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors bg-white/10 p-2 rounded-full hover:bg-white/20"><X size={32}/></button>
+             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-6xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 ring-1 ring-white/20" onClick={(e) => e.stopPropagation()}><iframe className="w-full h-full" src={`https://www.youtube.com/embed/${config.youtube_video_id || "jfKfPfyJRdk"}?autoplay=1`} title="Aftermovie" allow="autoplay; encrypted-media" allowFullScreen/></motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex-col hidden md:flex fixed h-full z-20 shadow-sm">
-        <div className="p-8 border-b border-slate-100">
-            <div className="font-black text-2xl tracking-tighter text-slate-900">
-                EXPO<span className="text-cyan-600">ADMIN</span>
-            </div>
-            <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-widest flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                CONTROL CENTER V9.0
-            </div>
-        </div>
-        
-        {/* Menu Items */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {[
-                {id: "dashboard", label: "Overview", icon: LayoutDashboard},
-                {id: "scanner", label: "Gate Scanner", icon: ShieldCheck},
-                {id: "participants", label: "Data Peserta", icon: Users},
-                {id: "cms", label: "Edit Landing Page", icon: MonitorPlay},
-                {id: "data_master", label: "Data Master", icon: Settings},
-            ].map(m => (
-                <button 
-                    key={m.id} 
-                    onClick={() => setActiveTab(m.id)} 
-                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl text-sm font-bold transition-all duration-200 ${
-                        activeTab === m.id 
-                        ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20 translate-x-1" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                >
-                    <m.icon size={18} /> {m.label}
-                </button>
-            ))}
-        </nav>
-        
-        <div className="p-4 border-t border-slate-100">
-            <button 
-                onClick={() => setSession(false)} 
-                className="w-full flex items-center gap-2 px-5 py-4 text-red-500 font-bold hover:bg-red-50 rounded-xl text-sm transition-colors"
-            >
-                <LogOut size={18}/> Keluar Sistem
-            </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="ml-0 md:ml-72 flex-1 p-8 md:p-10 transition-all">
-        
-        {/* TOP HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-            <div>
-                <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{activeTab.replace(/_/g, " ")}</h2>
-                <p className="text-slate-500 text-sm font-medium mt-1 flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${
-                        settings.site_mode === 'LIVE' ? 'bg-green-500' :
-                        settings.site_mode === 'MAINTENANCE' ? 'bg-yellow-500' :
-                        'bg-blue-500'
-                    }`}></span>
-                    Mode Situs: <strong>{settings.site_mode}</strong> • Sync: {new Date().toLocaleTimeString()}
-                </p>
-            </div>
-            <div className="flex gap-3">
-                <button 
-                    onClick={fetchAllData} 
-                    className={`p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-cyan-600 shadow-sm hover:shadow-md transition-all ${refreshing ? "animate-spin" : ""}`}
-                    title="Refresh Data"
-                >
-                    <RefreshCw size={20}/>
-                </button>
-            </div>
-        </div>
-
-        {/* ================================================================================== */}
-        {/* TAB 1: DASHBOARD OVERVIEW */}
-        {/* ================================================================================== */}
-        {activeTab === "dashboard" && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
-                {/* Card 1: Total Peserta */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform"><Users size={24}/></div>
-                    </div>
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{participants.length}</div>
-                    <div className="text-sm text-slate-500 font-bold mt-2">Total Pendaftar</div>
-                </div>
-
-                {/* Card 2: Peserta Hadir (Check-in) */}
-                <div className="bg-green-50 p-6 rounded-3xl border border-green-200 shadow-sm hover:shadow-lg transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-4 bg-white text-green-600 rounded-2xl group-hover:scale-110 transition-transform"><UserCheck size={24}/></div>
-                    </div>
-                    <div className="text-5xl font-black text-green-700 tracking-tight">
-                        {participants.filter(p => p.status === "CHECKED-IN").length}
-                    </div>
-                    <div className="text-sm text-green-700 font-bold mt-2">Peserta Hadir (Scan)</div>
-                </div>
-
-                {/* Card 3: Kampus */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl group-hover:scale-110 transition-transform"><School size={24}/></div>
-                    </div>
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{campuses.length}</div>
-                    <div className="text-sm text-slate-500 font-bold mt-2">Partner Kampus</div>
-                </div>
-
-                {/* Card 4: SITE MODE */}
-                <div className={`p-6 rounded-3xl border shadow-sm text-white flex flex-col justify-between ${
-                    settings.site_mode === "LIVE" ? "bg-linear-to-br from-green-500 to-emerald-700 border-green-600" : 
-                    settings.site_mode === "MAINTENANCE" ? "bg-linear-to-br from-yellow-500 to-amber-600 border-yellow-600" :
-                    "bg-linear-to-br from-blue-500 to-indigo-600 border-blue-600"
-                }`}>
-                    <div className="font-bold opacity-80 flex items-center gap-2"><Settings size={16}/> SITE MODE</div>
-                    <div className="text-3xl font-black tracking-widest mt-4">{settings.site_mode}</div>
-                    <div className="text-xs opacity-75 mt-2 font-medium">Status Website Saat Ini</div>
-                </div>
-                
-                {/* Recent Activity Table */}
-                <div className="md:col-span-4 bg-white border border-slate-200 rounded-3xl p-8 shadow-sm mt-4">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 className="font-bold text-xl text-slate-900">Aktivitas Pendaftaran Terkini</h3>
-                            <p className="text-sm text-slate-400">5 pendaftar terakhir yang masuk ke database.</p>
-                        </div>
-                        <button onClick={() => setActiveTab('participants')} className="px-4 py-2 bg-slate-50 rounded-lg text-sm font-bold text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 flex items-center gap-2 transition-colors">
-                            Lihat Semua <ChevronRight size={16}/>
-                        </button>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
-                                <tr>
-                                    <th className="p-4 rounded-l-xl">Nama Lengkap</th>
-                                    <th className="p-4">Asal Sekolah</th>
-                                    <th className="p-4">Status</th>
-                                    <th className="p-4 rounded-r-xl">Waktu Daftar</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {participants.slice(0,5).map(p => (
-                                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="p-4 font-bold text-slate-900">{p.name}</td>
-                                        <td className="p-4 text-slate-500">{p.origin_school}</td>
-                                        <td className="p-4">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded border ${p.status === "CHECKED-IN" ? "bg-green-50 text-green-600 border-green-100" : "bg-slate-50 text-slate-400 border-slate-100"}`}>
-                                                {p.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-xs font-mono text-slate-400">{new Date(p.created_at).toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* ================================================================================== */}
-        {/* TAB 2: GATE CHECK-IN (SCANNER) */}
-        {/* ================================================================================== */}
-        {activeTab === "scanner" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
-                
-                {/* Kolom Kiri: Input Area */}
-                <div className="space-y-6">
-                    <div className="bg-white p-8 rounded-3xl border shadow-lg border-slate-200">
-                        <h3 className="font-black text-xl mb-4 flex items-center gap-2 text-slate-800">
-                            <ShieldCheck className="text-cyan-600" size={24}/> SECURE SCANNER
-                        </h3>
-                        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                            Scan QR Code tiket. Mendukung verifikasi UUID (Anti-Palsu) dan ID Biasa.
-                        </p>
-                        
-                        <form onSubmit={handleCheckIn} className="relative">
-                            <div className="relative">
-                                <input 
-                                    autoFocus 
-                                    value={scanId} 
-                                    onChange={e => setScanId(e.target.value)} 
-                                    placeholder="Scan QR / Ketik ID..." 
-                                    className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-2xl text-3xl font-black text-center tracking-widest outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all uppercase placeholder:text-slate-300"
-                                />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                    {loading && <RefreshCw className="animate-spin"/>}
-                                </div>
-                            </div>
-                            <button 
-                                disabled={loading}
-                                className="w-full mt-4 bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-cyan-600 transition-colors shadow-lg flex justify-center items-center gap-2 disabled:opacity-70"
-                            >
-                                {loading ? "MEMERIKSA..." : "VERIFIKASI TIKET"}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* STATUS CARD: SUKSES */}
-                    {scanStatus === "SUCCESS" && scanResult && (
-                        <div className="bg-green-100 border-2 border-green-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-green-500/30">
-                                <CheckCircle size={48}/>
-                            </div>
-                            <h2 className="text-4xl font-black text-green-700 tracking-tight">TIKET VALID!</h2>
-                            <p className="text-green-600 font-bold mt-2 text-lg">Silakan Masuk</p>
-                            
-                            <div className="mt-8 bg-white p-6 rounded-2xl border border-green-200 shadow-sm text-left relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-bl-full"></div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Peserta</div>
-                                <div className="text-2xl font-black text-slate-900 mb-4">{scanResult.name}</div>
-                                
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Asal Sekolah</div>
-                                <div className="text-lg font-bold text-slate-700">{scanResult.origin_school}</div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STATUS CARD: SUDAH DIPAKAI */}
-                    {scanStatus === "USED" && scanResult && (
-                        <div className="bg-orange-50 border-2 border-orange-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-orange-500/30">
-                                <AlertCircle size={48}/>
-                            </div>
-                            <h2 className="text-3xl font-black text-orange-700 tracking-tight">SUDAH DIPAKAI!</h2>
-                            <p className="text-orange-600 font-bold mt-2">Peserta ini sudah masuk sebelumnya.</p>
-                            
-                            <div className="mt-8 bg-white p-6 rounded-2xl border border-orange-200 shadow-sm text-left">
-                                <div className="text-xl font-bold text-slate-900">{scanResult.name}</div>
-                                <div className="text-sm text-slate-500 mb-4">{scanResult.origin_school}</div>
-                                
-                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3">
-                                    <Calendar size={18}/>
-                                    Waktu Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STATUS CARD: ERROR */}
-                    {scanStatus === "ERROR" && (
-                        <div className="bg-red-50 border-2 border-red-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-red-500/30">
-                                <XCircle size={48}/>
-                            </div>
-                            <h2 className="text-3xl font-black text-red-700 tracking-tight">TIKET PALSU!</h2>
-                            <p className="text-red-600 font-bold mt-2">ID tiket tidak ditemukan di database.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Kolom Kanan: List Riwayat Check-in */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-175">
-                    <div className="p-6 border-b bg-slate-50 font-bold flex justify-between items-center rounded-t-3xl">
-                        <span className="text-slate-800 text-lg">Riwayat Masuk</span>
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-green-200">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            Live Feed
-                        </span>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                        {participants.filter(p => p.status === "CHECKED-IN").map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-4 border-l-4 border-l-green-500 border border-slate-100 rounded-xl bg-white shadow-sm hover:shadow-md transition-all">
-                                <div>
-                                    <div className="font-bold text-slate-900 text-sm">{p.name}</div>
-                                    <div className="text-xs text-slate-500">{p.origin_school}</div>
-                                    <div className="text-[10px] text-slate-400 font-mono mt-1">{p.ticket_code ? p.ticket_code.substring(0,8) + "..." : `#${p.id}`}</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                                        {new Date(p.check_in_time).toLocaleTimeString()}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {participants.filter(p => p.status === "CHECKED-IN").length === 0 && (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                                <UserCheck size={64} className="mb-4 opacity-10"/>
-                                <p className="text-sm font-medium">Belum ada peserta yang check-in.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* ================================================================================== */}
-        {/* TAB 3: DATA PESERTA */}
-        {/* ================================================================================== */}
-        {activeTab === "participants" && (
-            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-300 slide-in-from-bottom-4">
-                <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/50">
-                    <div className="relative w-full md:w-96">
-                        <Search className="absolute left-4 top-3.5 text-slate-400 w-5 h-5"/>
-                        <input 
-                            type="text" 
-                            placeholder="Cari Nama / UUID / Sekolah..." 
-                            onChange={e => setSearch(e.target.value)} 
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-slate-900 transition-all"
-                        />
-                    </div>
-                    <button onClick={downloadCSV} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-green-500/20 transition-all">
-                        <Download size={18}/> Export CSV
-                    </button>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider">
-                            <tr>
-                                <th className="p-5 w-16 text-center">No</th>
-                                <th className="p-5">Nama / ID</th>
-                                <th className="p-5">Sekolah</th>
-                                <th className="p-5">UUID (Tiket)</th>
-                                <th className="p-5">Status</th>
-                                <th className="p-5 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {participants.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.origin_school.toLowerCase().includes(search.toLowerCase()) || (p.ticket_code && p.ticket_code.toLowerCase().includes(search.toLowerCase()))).map((p, i) => (
-                                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="p-5 text-center text-slate-400 font-bold">{i+1}</td>
-                                    <td className="p-5">
-                                        <div className="font-bold text-slate-900 text-base">{p.name}</div>
-                                        <div className="text-xs text-slate-400 mt-1">{p.phone}</div>
-                                    </td>
-                                    <td className="p-5">
-                                        <span className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full font-bold text-xs border border-cyan-100">{p.origin_school}</span>
-                                    </td>
-                                    <td className="p-5 font-mono text-xs text-slate-500">
-                                        {p.ticket_code ? p.ticket_code : "-"}
-                                    </td>
-                                    <td className="p-5 text-slate-600">
-                                        {p.status === "CHECKED-IN" ? (
-                                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-xs border border-green-200 flex w-fit items-center gap-1">
-                                                <CheckCircle size={12}/> HADIR
-                                            </span>
-                                        ) : (
-                                            <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-bold text-xs border border-slate-200">
-                                                BELUM
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="p-5 text-center">
-                                        <button onClick={() => deleteItem('participants', p.id)} className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
-                                            <Trash2 size={18}/>
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        )}
-
-        {/* ================================================================================== */}
-        {/* TAB 4: CMS (LANDING PAGE) */}
-        {/* ================================================================================== */}
-        {activeTab === "cms" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
-                <div className="space-y-8">
-                    {/* Hero Section Card */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] -mr-10 -mt-10 z-0"></div>
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3 relative z-10">
-                            <MonitorPlay size={20} className="text-cyan-600"/> Hero Section Content
-                        </h3>
-                        <div className="space-y-5 relative z-10">
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Judul Besar (Headline)</label>
-                                <input type="text" value={settings.hero_title || ""} onChange={e => setSettings({...settings, hero_title: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-lg focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sub Judul (Description)</label>
-                                <input type="text" value={settings.hero_subtitle || ""} onChange={e => setSettings({...settings, hero_subtitle: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Event</label>
-                                    <input type="text" value={settings.event_date || ""} onChange={e => setSettings({...settings, event_date: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lokasi Event</label>
-                                    <input type="text" value={settings.event_location || ""} onChange={e => setSettings({...settings, event_location: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* UPLOAD MAIN LOGO WEBSITE (BARU) */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
-                            <ImageIcon size={20} className="text-cyan-600"/> Logo Sekolah / Event
-                        </h3>
-                        <p className="text-xs text-slate-400 mb-4">Logo ini akan muncul di pojok kiri atas website utama menggantikan logo default.</p>
-                        
-                        <div className="flex gap-4 items-center">
-                             {/* Preview Logo Saat Ini */}
-                             {settings.event_logo_url && (
-                                <div className="h-20 w-20 bg-slate-50 border rounded-xl p-2 flex items-center justify-center">
-                                    <img src={settings.event_logo_url} alt="Current Logo" className="max-h-full max-w-full object-contain"/>
-                                </div>
-                             )}
-                             
-                             {/* Input File */}
-                             <div className="flex-1">
-                                 <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-all border-slate-300">
-                                    <span className="text-xs font-bold text-slate-500 text-center">
-                                        {mainLogoFile ? mainLogoFile.name : "Klik untuk Pilih Logo Baru (PNG Transparan)"}
-                                    </span>
-                                    <input type="file" accept="image/*" onChange={e => setMainLogoFile(e.target.files ? e.target.files[0] : null)} className="hidden" />
-                                 </label>
-                             </div>
-                        </div>
-                        
-                        <button 
-                            onClick={handleUpdateMainLogo} 
-                            disabled={loading || !mainLogoFile} 
-                            className="w-full mt-4 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-cyan-600 transition-colors disabled:opacity-50 flex justify-center gap-2"
-                        >
-                            {loading ? <RefreshCw className="animate-spin" size={16}/> : <UploadCloud size={16}/>}
-                            Upload & Ganti Logo
-                        </button>
-                    </div>
-
-                    {/* VIDEO ID SETTING */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
-                            <Youtube size={24} className="text-red-600"/> Video Aftermovie
-                        </h3>
-                        <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Youtube Video ID</label>
-                            <div className="flex items-center gap-3 mt-2">
-                                <span className="text-slate-400 text-sm font-mono bg-slate-50 p-4 rounded-xl border border-slate-200 select-none">youtube.com/watch?v=</span>
-                                <input 
-                                    type="text" 
-                                    value={settings.youtube_video_id || ""} 
-                                    onChange={e => setSettings({...settings, youtube_video_id: e.target.value})} 
-                                    className="flex-1 p-4 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-red-500 outline-none placeholder:text-slate-300 font-bold text-slate-700" 
-                                    placeholder="Contoh: jfKfPfyJRdk"
-                                />
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
-                                <AlertCircle size={10}/> Masukkan kode unik video dari URL Youtube (bagian setelah v=)
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Stats Card */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
-                            <BarChart3 size={20} className="text-purple-600"/> Statistik (Animated Counter)
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Kampus</label>
-                                <div className="text-2xl font-black text-purple-600">{campuses.length}</div>
-                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Peserta</label>
-                                <div className="text-2xl font-black text-blue-600">{participants.length}</div>
-                                <div className="text-[10px] text-slate-400 mt-1 italic">*Otomatis</div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase block text-center mb-2">Jml Speaker</label>
-                                <input type="number" value={settings.stats_speakers || ""} onChange={e => setSettings({...settings, stats_speakers: e.target.value})} className="w-full p-3 border rounded-xl font-black text-2xl text-center text-orange-600 outline-none focus:border-orange-500 transition-all"/>
-                                <div className="text-[10px] text-center mt-1 text-slate-400">*Manual</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-8">
-                    {/* Config System Card */}
-                    <div className="bg-slate-50/50 p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
-                            <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
-                        </h3>
-                        
-                        {/* MODE WEBSITE CONTROL */}
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Mode Tampilan Website</label>
-                            <div className="flex gap-2">
-                                <button onClick={() => setSettings({...settings, site_mode: "LIVE"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "LIVE" ? "bg-green-50 border-green-500 text-green-700 ring-2 ring-green-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    <Globe size={20}/> LIVE
-                                </button>
-                                <button onClick={() => setSettings({...settings, site_mode: "COMING_SOON"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "COMING_SOON" ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    <Timer size={20}/> COMING SOON
-                                </button>
-                                <button onClick={() => setSettings({...settings, site_mode: "MAINTENANCE"})} className={`flex-1 py-3 px-2 rounded-xl font-bold text-xs border transition-all flex flex-col items-center gap-2 ${settings.site_mode === "MAINTENANCE" ? "bg-yellow-50 border-yellow-500 text-yellow-700 ring-2 ring-yellow-500/20" : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    <Construction size={20}/> MAINTENANCE
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* STATUS PENDAFTARAN CONTROL */}
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                            <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Status Pendaftaran Form</label>
-                            <div className="flex gap-4">
-                                <button onClick={() => setSettings({...settings, status: "OPEN"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "OPEN" ? "border-green-500 bg-green-50 text-green-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    {settings.status === "OPEN" ? <Unlock size={20}/> : <CheckCircle size={20}/>} DIBUKA
-                                </button>
-                                <button onClick={() => setSettings({...settings, status: "CLOSED"})} className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all flex justify-center items-center gap-2 ${settings.status === "CLOSED" ? "border-red-500 bg-red-50 text-red-700 shadow-md transform scale-105" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}>
-                                    {settings.status === "CLOSED" ? <Lock size={20}/> : <XCircle size={20}/>} DITUTUP
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Running Text (Pengumuman Atas)</label>
-                            <textarea value={settings.announcement || ""} onChange={e => setSettings({...settings, announcement: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 h-32 focus:ring-2 focus:ring-slate-900 outline-none transition-all" placeholder="Isi pengumuman penting di sini..."/>
-                        </div>
-                    </div>
-
-                    {/* Kepsek Profile */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-lg mb-6">Profil Kepala Sekolah</h3>
-                        <div className="space-y-4">
-                            <input type="text" value={settings.headmaster_name || ""} onChange={e => setSettings({...settings, headmaster_name: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl transition-all focus:ring-2 focus:ring-slate-900 outline-none" placeholder="Nama Lengkap & Gelar"/>
-                            <textarea value={settings.headmaster_quote || ""} onChange={e => setSettings({...settings, headmaster_quote: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl h-28 transition-all focus:ring-2 focus:ring-slate-900 outline-none" placeholder="Kutipan Sambutan..."/>
-                        </div>
-                    </div>
-
-                    <button onClick={saveSettings} disabled={loading} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold shadow-xl shadow-slate-900/20 flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] active:scale-95">
-                        {loading ? <><RefreshCw className="animate-spin"/> Menyimpan Perubahan...</> : <><Save size={20}/> SIMPAN SEMUA KONFIGURASI</>}
-                    </button>
-                </div>
-            </div>
-        )}
-
-        {/* ================================================================================== */}
-        {/* TAB 5: DATA MASTER (KAMPUS, RUNDOWN, FAQ) */}
-        {/* ================================================================================== */}
-        {activeTab === "data_master" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
-                
-                {/* 1. KAMPUS MANAGER */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-212.5 lg:col-span-1">
-                    <div className="p-6 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm sticky top-0 z-10">
-                        <span className="flex items-center gap-2 text-slate-800"><School size={20} className="text-cyan-600"/> Daftar Kampus</span>
-                        <span className="bg-slate-900 text-white text-xs px-3 py-1 rounded-full font-mono">{campuses.length}</span>
-                    </div>
-                    
-                    {/* List */}
-                    <div className="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50/30">
-                        {campuses.map(c => (
-                            <div key={c.id} className="flex gap-4 p-4 border border-slate-200 rounded-2xl hover:border-cyan-300 hover:shadow-md transition-all group relative bg-white">
-                                <div className="w-16 h-16 rounded-xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm overflow-hidden">
-                                    <img src={c.logo_url || "https://via.placeholder.com/50?text=IMG"} alt={c.name} className="max-w-full max-h-full object-contain" />
-                                </div>
-                                <div className="flex-1 pr-6">
-                                    <div className="font-bold text-slate-900 text-sm mb-1">{c.name}</div>
-                                    <div className="text-[10px] text-slate-500 leading-relaxed line-clamp-2">{c.description || "Tidak ada deskripsi."}</div>
-                                </div>
-                                <button onClick={() => deleteItem('event_campuses', c.id)} className="absolute top-2 right-2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                    <Trash2 size={16}/>
-                                </button>
-                            </div>
-                        ))}
-                        {campuses.length === 0 && (
-                            <div className="text-center p-10 text-slate-400 text-sm italic border-2 border-dashed border-slate-200 rounded-2xl">
-                                Belum ada kampus. Tambahkan di bawah.
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Form Input */}
-                    <div className="p-6 border-t bg-white rounded-b-3xl space-y-4 shadow-[0_-5px_20px_rgba(0,0,0,0.02)] relative z-10">
-                        <h4 className="font-bold text-xs text-slate-400 uppercase tracking-widest mb-2">Tambah Partner Baru</h4>
-                        
-                        <label className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-all ${logoFile ? 'border-cyan-500 bg-cyan-50/50' : 'border-slate-300'}`}>
-                            <UploadCloud size={24} className={logoFile ? "text-cyan-600" : "text-slate-400"}/>
-                            <span className="text-xs font-bold text-slate-500 truncate max-w-full px-2">{logoFile ? logoFile.name : "Upload Logo (Max 2MB)"}</span>
-                            <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files ? e.target.files[0] : null)} className="hidden" />
-                        </label>
-
-                        <input 
-                            value={newCampusName} 
-                            onChange={e => setNewCampusName(e.target.value)} 
-                            placeholder="Nama Universitas / Instansi" 
-                            className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                        />
-                        <textarea 
-                            value={newCampusDesc} 
-                            onChange={e => setNewCampusDesc(e.target.value)} 
-                            placeholder="Deskripsi singkat untuk tooltip..." 
-                            className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 h-20 resize-none transition-all"
-                        />
-                        
-                        <button 
-                            onClick={addCampus} 
-                            disabled={uploading || !newCampusName} 
-                            className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-cyan-600 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg"
-                        >
-                            {uploading ? <><RefreshCw className="animate-spin" size={16}/> Mengupload...</> : <><Plus size={16}/> Simpan Data Kampus</>}
-                        </button>
-                    </div>
-                </div>
-
-                {/* 2. RUNDOWN & FAQ (Stacked Column) */}
-                <div className="lg:col-span-2 flex flex-col gap-8">
-                    
-                    {/* RUNDOWN */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
-                        <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
-                            <span className="flex items-center gap-2 text-slate-800"><Calendar size={18} className="text-purple-600"/> Rundown Acara</span>
-                            <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{rundown.length}</span>
-                        </div>
-                        <div className="p-5 flex-1 overflow-y-auto space-y-2 bg-slate-50/30">
-                            {rundown.map(r => (
-                                <div key={r.id} className="flex items-center p-3 border border-slate-200 rounded-xl bg-white hover:shadow-sm transition-all group">
-                                    <div className="bg-purple-50 text-purple-700 px-3 py-1 rounded-lg text-xs font-bold mr-4 font-mono">{r.time}</div>
-                                    <div className="flex-1">
-                                        <div className="font-bold text-sm text-slate-800">{r.title}</div>
-                                        <div className="text-xs text-slate-500">{r.description}</div>
-                                    </div>
-                                    <button onClick={() => deleteItem('event_rundown', r.id)} className="text-slate-300 hover:text-red-500 p-2">
-                                        <Trash2 size={16}/>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="p-4 border-t bg-white rounded-b-3xl flex gap-3">
-                            <input type="time" value={newRundown.time} onChange={e => setNewRundown({...newRundown, time: e.target.value})} className="border rounded-xl p-3 text-sm font-bold w-32 bg-slate-50"/>
-                            <div className="flex-1 flex flex-col gap-2">
-                                <input value={newRundown.title} onChange={e => setNewRundown({...newRundown, title: e.target.value})} placeholder="Nama Kegiatan" className="border rounded-xl p-3 text-sm font-bold w-full outline-none focus:border-purple-500"/>
-                                <input value={newRundown.description} onChange={e => setNewRundown({...newRundown, description: e.target.value})} placeholder="Keterangan singkat" className="border rounded-xl p-3 text-xs w-full outline-none focus:border-purple-500"/>
-                            </div>
-                            <button onClick={() => addItem('event_rundown', newRundown)} disabled={!newRundown.title} className="bg-slate-900 text-white px-5 rounded-xl font-bold text-sm hover:bg-purple-600 transition-colors h-auto">
-                                <Plus size={20}/>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* FAQ */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
-                        <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
-                            <span className="flex items-center gap-2 text-slate-800"><HelpCircle size={18} className="text-orange-600"/> Tanya Jawab (FAQ)</span>
-                            <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{faqs.length}</span>
-                        </div>
-                        <div className="p-5 flex-1 overflow-y-auto space-y-2 bg-slate-50/30">
-                            {faqs.map(f => (
-                                <div key={f.id} className="p-4 border border-slate-200 rounded-xl bg-white hover:shadow-sm transition-all group relative">
-                                    <div className="font-bold text-sm text-slate-900 pr-8"><span className="text-orange-500 mr-1">Q:</span> {f.question}</div>
-                                    <div className="text-xs text-slate-500 mt-1 pl-4 border-l-2 border-orange-100">{f.answer}</div>
-                                    <button onClick={() => deleteItem('event_faq', f.id)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-2">
-                                        <Trash2 size={14}/>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="p-4 border-t bg-white rounded-b-3xl space-y-3">
-                            <input value={newFaq.question} onChange={e => setNewFaq({...newFaq, question: e.target.value})} placeholder="Pertanyaan baru..." className="w-full border rounded-xl p-3 text-sm font-bold outline-none focus:border-orange-500"/>
-                            <div className="flex gap-3">
-                                <input value={newFaq.answer} onChange={e => setNewFaq({...newFaq, answer: e.target.value})} placeholder="Jawaban..." className="flex-1 border rounded-xl p-3 text-sm outline-none focus:border-orange-500"/>
-                                <button onClick={() => addItem('event_faq', newFaq)} disabled={!newFaq.question} className="bg-slate-900 text-white px-5 rounded-xl font-bold text-sm hover:bg-orange-600 transition-colors">
-                                    <Plus size={20}/>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        )}
-
-      </main>
-    </div>
+    </main>
   );
 }
