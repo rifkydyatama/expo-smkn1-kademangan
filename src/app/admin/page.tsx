@@ -31,7 +31,8 @@ import {
   Construction, // Icon Maintenance
   Timer,        // Icon Coming Soon
   Globe,        // Icon Live
-  Bell          // Icon Notifikasi
+  Bell,         // Icon Notifikasi
+  ShieldCheck   // Icon Secure
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -45,6 +46,7 @@ type Participant = {
   created_at: string;
   status: string;          // Status kehadiran (REGISTERED / CHECKED-IN)
   check_in_time: string;   // Waktu scan barcode
+  ticket_code?: string;    // Kode UUID Unik
 };
 
 type Campus = { 
@@ -88,12 +90,12 @@ export default function AdminPage() {
   // UI Helper State
   const [search, setSearch] = useState("");
   
-  // --- NOTIFIKASI STATE (NEW) ---
+  // --- NOTIFIKASI STATE (CUSTOM POPUP) ---
   const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
 
   const showNotify = (message: string, type: "info" | "error" | "success" = "info") => {
       setNotification({ show: true, message, type });
-      // Auto hide after 3 seconds
+      // Auto hide setelah 3 detik
       setTimeout(() => {
           setNotification({ show: false, message: "", type: "info" });
       }, 3000);
@@ -119,6 +121,7 @@ export default function AdminPage() {
   // --- 4. LOGIN SYSTEM ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    // Hardcoded credentials (bisa diganti nanti)
     if (email === "admin" && password === "admin123") {
       setSession(true);
       fetchAllData();
@@ -132,22 +135,21 @@ export default function AdminPage() {
   const fetchAllData = async () => {
     setRefreshing(true);
     try {
-        // 1. Settings (Config Landing Page)
+        // 1. Settings
         const { data: s } = await supabase.from("event_settings").select("*");
         const conf: any = {}; 
         s?.forEach(item => conf[item.key] = item.value); 
         
-        // Default value protection jika belum ada di DB
         if (!conf.site_mode) conf.site_mode = "LIVE";
         if (!conf.status) conf.status = "OPEN";
 
         setSettings(conf);
 
-        // 2. Participants (Peserta) - Order by ID descending (Terbaru diatas)
+        // 2. Participants
         const { data: p } = await supabase.from("participants").select("*").order('id', { ascending: false });
         if(p) setParticipants(p);
 
-        // 3. Campuses (Data Master)
+        // 3. Campuses
         const { data: c } = await supabase.from("event_campuses").select("*").order('id'); 
         if(c) setCampuses(c);
         
@@ -161,7 +163,7 @@ export default function AdminPage() {
 
     } catch (error) {
         console.error("Gagal mengambil data:", error);
-        showNotify("Gagal koneksi ke database. Cek internet.", "error");
+        showNotify("Gagal koneksi ke database.", "error");
     } finally {
         setRefreshing(false);
     }
@@ -173,77 +175,92 @@ export default function AdminPage() {
     setLoading(true);
     setScanResult(null);
     
-    // Bersihkan input ID (Hapus prefix "EXPO-" jika ada, trim spasi)
-    const cleanId = scanId.toUpperCase().replace("EXPO-", "").trim();
+    const cleanId = scanId.trim(); // Ambil input mentah (bisa ID angka atau UUID)
 
     if (!cleanId) {
         setLoading(false);
         return;
     }
 
-    // 1. Cari Data Peserta di Database
-    const { data: user, error } = await supabase
-        .from("participants")
-        .select("*")
-        .eq("id", cleanId)
-        .single();
+    // Coba cari berdasarkan ID (angka) ATAU ticket_code (UUID)
+    // Note: Kita query semua dulu baru filter di client side untuk simplifikasi logic OR
+    // Atau query spesifik jika tahu formatnya. Disini kita pakai logic OR sederhana via Supabase syntax kalau bisa,
+    // tapi biar aman kita coba cari by ID dulu, kalau gagal cari by UUID.
+    
+    let user = null;
+    
+    // Cek apakah inputnya angka (ID lama)
+    if (!isNaN(Number(cleanId))) {
+         const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
+         user = data;
+    } 
+    
+    // Jika bukan angka atau tidak ketemu, coba cari sebagai UUID
+    if (!user) {
+         const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
+         user = data;
+    }
 
-    if (error || !user) {
+    if (!user) {
         setScanStatus("ERROR"); // ID Tidak Ditemukan
-        showNotify("ID Tiket tidak ditemukan dalam database!", "error");
+        showNotify("Tiket TIDAK VALID / Tidak Ditemukan!", "error");
     } else if (user.status === "CHECKED-IN") {
         setScanResult(user);
         setScanStatus("USED");  // Tiket sudah dipakai
-        showNotify(`Tiket atas nama ${user.name} SUDAH DIGUNAKAN!`, "error");
+        showNotify(`Tiket a.n ${user.name} SUDAH DIGUNAKAN!`, "error");
     } else {
-        // 2. Update Status jadi Hadir (Check-in)
+        // Update Status jadi Hadir
         await supabase
             .from("participants")
             .update({ 
                 status: "CHECKED-IN", 
                 check_in_time: new Date().toISOString() 
             })
-            .eq("id", cleanId);
+            .eq("id", user.id); // Update by ID primary key
         
         setScanResult(user);
         setScanStatus("SUCCESS"); // Berhasil masuk
         showNotify(`Check-in Berhasil: ${user.name}`, "success");
-        fetchAllData(); // Refresh data global untuk update counter
+        fetchAllData(); 
     }
     
-    setScanId(""); // Reset input agar siap scan tiket berikutnya tanpa hapus manual
+    setScanId(""); 
     setLoading(false);
   };
 
   // --- 7. FITUR: UPLOAD GAMBAR LOGO ---
   const handleUploadImage = async (file: File): Promise<string | null> => {
-    // Generate nama file unik biar gak bentrok
-    const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
-    
-    // Upload ke Bucket 'campus-logos'
-    const { data, error } = await supabase.storage
-        .from('campus-logos')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-    
-    if (error) { 
-        showNotify("Gagal Upload Gambar: " + error.message, "error"); 
-        return null; 
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // Upload ke Bucket 'campus-logos'
+        const { error: uploadError } = await supabase.storage
+            .from('campus-logos')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            throw uploadError;
+        }
+
+        // Ambil Public URL
+        const { data } = supabase.storage
+            .from('campus-logos')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
+    } catch (error: any) {
+        showNotify("Gagal Upload Gambar: " + error.message, "error");
+        return null;
     }
-    
-    // Ambil Public URL buat disimpan di database
-    const { data: urlData } = supabase.storage
-        .from('campus-logos')
-        .getPublicUrl(data.path);
-        
-    return urlData.publicUrl;
   };
 
-  // --- 8. CRUD ACTIONS (Create, Update, Delete) ---
+  // --- 8. CRUD ACTIONS ---
   
-  // Simpan Konfigurasi (CMS)
+  // Simpan Konfigurasi
   const saveSettings = async () => {
     setLoading(true);
-    // Loop object settings dan simpan satu-satu
     for (const [key, value] of Object.entries(settings)) {
        await supabase.from("event_settings").upsert({ key, value: String(value) }, { onConflict: 'key' });
     }
@@ -280,10 +297,9 @@ export default function AdminPage() {
     setUploading(false);
   };
 
-  // Tambah Item Umum (Rundown/FAQ)
+  // Tambah Item Umum
   const addItem = async (table: string, data: any) => {
     await supabase.from(table).insert(data);
-    // Reset form
     setNewRundown({time:"", title:"", description:""}); 
     setNewFaq({question:"", answer:""});
     showNotify("Data berhasil ditambahkan!", "success");
@@ -292,23 +308,23 @@ export default function AdminPage() {
 
   // Hapus Item
   const deleteItem = async (table: string, id: number) => {
-    if(confirm("⚠️ Apakah Anda yakin ingin menghapus data ini secara permanen?")) {
+    if(confirm("⚠️ Hapus data ini permanen?")) {
         await supabase.from(table).delete().eq("id", id);
         showNotify("Data berhasil dihapus.", "success");
         fetchAllData();
     }
   };
 
-  // Export CSV (Laporan)
+  // Export CSV
   const downloadCSV = () => {
-    const headers = ["ID Sistem,Nama Lengkap,Asal Sekolah,Email,No HP,Status Kehadiran,Waktu Check-in,Waktu Daftar"];
+    const headers = ["ID,UUID,Nama,Sekolah,Email,No HP,Status,Waktu Check-in"];
     const rows = participants.map(p => 
-        `${p.id},"${p.name}","${p.origin_school}","${p.email}","${p.phone}","${p.status}","${p.check_in_time || "-"}","${p.created_at}"`
+        `${p.id},"${p.ticket_code || '-'}","${p.name}","${p.origin_school}","${p.email}","${p.phone}","${p.status}","${p.check_in_time || "-"}"`
     );
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
     const link = document.createElement("a");
     link.href = encodeURI(csvContent); 
-    link.download = `Laporan_Peserta_Expo_${new Date().toLocaleDateString()}.csv`; 
+    link.download = `Laporan_Peserta_${new Date().toISOString().split('T')[0]}.csv`; 
     link.click();
     showNotify("Laporan CSV berhasil diunduh!", "success");
   };
@@ -316,7 +332,7 @@ export default function AdminPage() {
   // --- 9. RENDER UI: LOGIN PAGE ---
   if (!session) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Toast Notification for Login */}
+      {/* Toast Notification */}
       <AnimatePresence>
         {notification.show && (
             <motion.div 
@@ -364,7 +380,7 @@ export default function AdminPage() {
                 MASUK DASHBOARD
             </button>
         </form>
-        <p className="text-center text-xs text-slate-300 mt-8">System v5.0.1 (Stable)</p>
+        <p className="text-center text-xs text-slate-300 mt-8">System v6.0 (Secure & Notif)</p>
       </div>
     </div>
   );
@@ -412,7 +428,7 @@ export default function AdminPage() {
             </div>
             <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-widest flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                CONTROL CENTER V7.0
+                CONTROL CENTER V6.0
             </div>
         </div>
         
@@ -420,10 +436,10 @@ export default function AdminPage() {
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {[
                 {id: "dashboard", label: "Overview", icon: LayoutDashboard},
-                {id: "scanner", label: "Gate Check-in", icon: ScanLine},
+                {id: "scanner", label: "Gate Scanner", icon: ScanLine},
                 {id: "participants", label: "Data Peserta", icon: Users},
                 {id: "cms", label: "Edit Landing Page", icon: MonitorPlay},
-                {id: "data_master", label: "Data Master & Upload", icon: Settings},
+                {id: "data_master", label: "Data Master", icon: Settings},
             ].map(m => (
                 <button 
                     key={m.id} 
@@ -439,7 +455,6 @@ export default function AdminPage() {
             ))}
         </nav>
         
-        {/* Logout Button */}
         <div className="p-4 border-t border-slate-100">
             <button 
                 onClick={() => setSession(false)} 
@@ -511,7 +526,7 @@ export default function AdminPage() {
                     <div className="text-sm text-slate-500 font-bold mt-2">Partner Kampus</div>
                 </div>
 
-                {/* Card 4: SITE MODE (Updated Color) */}
+                {/* Card 4: SITE MODE */}
                 <div className={`p-6 rounded-3xl border shadow-sm text-white flex flex-col justify-between ${
                     settings.site_mode === "LIVE" ? "bg-gradient-to-br from-green-500 to-emerald-700 border-green-600" : 
                     settings.site_mode === "MAINTENANCE" ? "bg-gradient-to-br from-yellow-500 to-amber-600 border-yellow-600" :
@@ -573,10 +588,10 @@ export default function AdminPage() {
                 <div className="space-y-6">
                     <div className="bg-white p-8 rounded-3xl border shadow-lg border-slate-200">
                         <h3 className="font-black text-xl mb-4 flex items-center gap-2 text-slate-800">
-                            <ScanLine className="text-cyan-600" size={24}/> SCANNER AREA
+                            <ShieldCheck className="text-cyan-600" size={24}/> SECURE SCANNER
                         </h3>
                         <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                            Pastikan kursor aktif di kolom input sebelum melakukan scan QR Code menggunakan alat scanner, atau ketik ID secara manual.
+                            Scan QR Code tiket. Mendukung verifikasi UUID (Anti-Palsu) dan ID Biasa.
                         </p>
                         
                         <form onSubmit={handleCheckIn} className="relative">
@@ -607,7 +622,7 @@ export default function AdminPage() {
                             <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-green-500/30">
                                 <CheckCircle size={48}/>
                             </div>
-                            <h2 className="text-4xl font-black text-green-700 tracking-tight">SUKSES!</h2>
+                            <h2 className="text-4xl font-black text-green-700 tracking-tight">TIKET VALID!</h2>
                             <p className="text-green-600 font-bold mt-2 text-lg">Silakan Masuk</p>
                             
                             <div className="mt-8 bg-white p-6 rounded-2xl border border-green-200 shadow-sm text-left relative overflow-hidden">
@@ -627,16 +642,14 @@ export default function AdminPage() {
                             <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-orange-500/30">
                                 <AlertCircle size={48}/>
                             </div>
-                            <h2 className="text-3xl font-black text-orange-700 tracking-tight">TIKET SUDAH DIPAKAI!</h2>
+                            <h2 className="text-3xl font-black text-orange-700 tracking-tight">SUDAH DIPAKAI!</h2>
                             <p className="text-orange-600 font-bold mt-2">Peserta ini sudah masuk sebelumnya.</p>
                             
                             <div className="mt-8 bg-white p-6 rounded-2xl border border-orange-200 shadow-sm text-left">
                                 <div className="text-xl font-bold text-slate-900">{scanResult.name}</div>
-                                <div className="text-sm text-slate-500 mb-4">{scanResult.origin_school}</div>
-                                
-                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3">
+                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3 mt-4">
                                     <Calendar size={18}/>
-                                    Waktu Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
+                                    Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
                                 </div>
                             </div>
                         </div>
@@ -648,8 +661,8 @@ export default function AdminPage() {
                             <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-red-500/30">
                                 <XCircle size={48}/>
                             </div>
-                            <h2 className="text-3xl font-black text-red-700 tracking-tight">TIKET TIDAK VALID</h2>
-                            <p className="text-red-600 font-bold mt-2">ID tiket tidak ditemukan di database.</p>
+                            <h2 className="text-3xl font-black text-red-700 tracking-tight">TIKET PALSU!</h2>
+                            <p className="text-red-600 font-bold mt-2">ID/UUID tidak ditemukan di database.</p>
                         </div>
                     )}
                 </div>
@@ -698,7 +711,7 @@ export default function AdminPage() {
                         <Search className="absolute left-4 top-3.5 text-slate-400 w-5 h-5"/>
                         <input 
                             type="text" 
-                            placeholder="Cari Nama / Sekolah / Email..." 
+                            placeholder="Cari Nama / UUID / Sekolah..." 
                             onChange={e => setSearch(e.target.value)} 
                             className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-slate-900 transition-all"
                         />
@@ -712,22 +725,26 @@ export default function AdminPage() {
                         <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider">
                             <tr>
                                 <th className="p-5 w-16 text-center">No</th>
-                                <th className="p-5">Informasi Peserta</th>
-                                <th className="p-5">Asal Sekolah</th>
+                                <th className="p-5">Nama / ID</th>
+                                <th className="p-5">Sekolah</th>
+                                <th className="p-5">UUID (Tiket)</th>
                                 <th className="p-5">Status</th>
                                 <th className="p-5 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {participants.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.origin_school.toLowerCase().includes(search.toLowerCase())).map((p, i) => (
+                            {participants.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.origin_school.toLowerCase().includes(search.toLowerCase()) || (p.ticket_code && p.ticket_code.toLowerCase().includes(search.toLowerCase()))).map((p, i) => (
                                 <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="p-5 text-center text-slate-400 font-bold">{i+1}</td>
                                     <td className="p-5">
                                         <div className="font-bold text-slate-900 text-base">{p.name}</div>
-                                        <div className="text-xs text-slate-400 mt-1">ID: {p.id} | {p.phone}</div>
+                                        <div className="text-xs text-slate-400 mt-1">{p.phone}</div>
                                     </td>
                                     <td className="p-5">
                                         <span className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full font-bold text-xs border border-cyan-100">{p.origin_school}</span>
+                                    </td>
+                                    <td className="p-5 font-mono text-xs text-slate-500">
+                                        {p.ticket_code ? p.ticket_code : "-"}
                                     </td>
                                     <td className="p-5 text-slate-600">
                                         {p.status === "CHECKED-IN" ? (
@@ -842,7 +859,7 @@ export default function AdminPage() {
                             <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
                         </h3>
                         
-                        {/* MODE WEBSITE CONTROL (BARU) */}
+                        {/* MODE WEBSITE CONTROL */}
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
                             <label className="text-xs font-bold text-slate-400 uppercase block mb-3">Mode Tampilan Website</label>
                             <div className="flex gap-2">
@@ -910,8 +927,8 @@ export default function AdminPage() {
                     <div className="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50/30">
                         {campuses.map(c => (
                             <div key={c.id} className="flex gap-4 p-4 border border-slate-200 rounded-2xl hover:border-cyan-300 hover:shadow-md transition-all group relative bg-white">
-                                <div className="w-16 h-16 rounded-xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm">
-                                    <img src={c.logo_url || "https://via.placeholder.com/50?text=IMG"} alt={c.name} className="max-w-full max-h-full object-contain" />
+                                <div className="w-16 h-16 rounded-xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm overflow-hidden">
+                                    <img src={c.logo_url || "https://via.placeholder.com/150?text=LOGO"} alt={c.name} className="object-contain w-full h-full" />
                                 </div>
                                 <div className="flex-1 pr-6">
                                     <div className="font-bold text-slate-900 text-sm mb-1">{c.name}</div>

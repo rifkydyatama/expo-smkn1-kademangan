@@ -899,7 +899,7 @@ export default function Home() {
 
                     {/* QR Code Area */}
                     <div className="p-4 border-2 border-dashed border-slate-300 rounded-3xl relative group cursor-pointer bg-slate-50 shadow-inner">
-                       <QRCodeSVG value={`EXPO-${ticketData.id}`} size={180} />
+                       <QRCodeSVG value={ticketData.ticket_code} size={180} />
                        {/* Scanner Line Animation */}
                        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
                           <motion.div 
