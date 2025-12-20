@@ -617,8 +617,8 @@ export default function Home() {
       
       {/* 2. NAVBAR */}
       {view !== "ticket" && (
-        <nav className="sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-24 transition-all">
-            <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        <nav className="sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-20 md:h-24 transition-all">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center justify-between gap-4">
                 <div 
                     className="flex items-center gap-3 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
                     onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
@@ -634,7 +634,7 @@ export default function Home() {
                             <Cpu className="w-7 h-7"/>
                         )}
                     </div>
-                    <span className="text-slate-900 text-3xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
+                    <span className="text-slate-900 text-xl sm:text-2xl md:text-3xl whitespace-nowrap">EXPO<span className="text-cyan-600">SMKN1</span></span>
                 </div>
                 
                 {view === "landing" && (
@@ -661,7 +661,7 @@ export default function Home() {
           <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             
             {/* HERO SECTION */}
-            <section className="relative pt-12 pb-32 px-6 max-w-7xl mx-auto min-h-[90vh] flex flex-col justify-center overflow-visible">
+                        <section className="relative pt-8 md:pt-12 pb-20 md:pb-32 px-4 md:px-6 max-w-7xl mx-auto min-h-[80vh] md:min-h-[90vh] flex flex-col justify-center overflow-visible">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                   
                   {/* HERO TEXT */}
@@ -683,7 +683,7 @@ export default function Home() {
                           initial={{ opacity: 0, y: 30 }} 
                           animate={{ opacity: 1, y: 0 }} 
                           transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }} 
-                          className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 leading-[0.9] mb-8 tracking-tighter"
+                          className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-black text-slate-900 leading-[0.92] md:leading-[0.9] mb-6 md:mb-8 tracking-tighter"
                       >
                           {config.hero_title}
                       </motion.h1>
@@ -692,7 +692,7 @@ export default function Home() {
                           initial={{ opacity: 0 }} 
                           animate={{ opacity: 1 }} 
                           transition={{ delay: 0.4 }} 
-                          className="text-xl text-slate-600 mb-10 max-w-lg leading-relaxed border-l-4 border-cyan-500 pl-6"
+                          className="text-base sm:text-lg md:text-xl text-slate-600 mb-8 md:mb-10 max-w-lg leading-relaxed border-l-4 border-cyan-500 pl-5 md:pl-6"
                       >
                           {config.hero_subtitle}
                       </motion.p>
@@ -701,24 +701,24 @@ export default function Home() {
                           initial={{ opacity: 0, y: 20 }} 
                           animate={{ opacity: 1, y: 0 }} 
                           transition={{ delay: 0.6 }} 
-                          className="flex flex-wrap gap-4"
+                          className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4"
                       >
                           <button 
                               onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
-                              className={`px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl transition-all hover:scale-105 flex items-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
+                              className={`px-8 md:px-10 py-4 md:py-5 rounded-2xl font-bold text-base sm:text-lg shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
                           >
                               {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text}
                               {config.status !== "CLOSED" && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>}
                           </button>
                           
-                          <div className="flex items-center gap-3 px-8 py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm">
+                          <div className="flex items-center gap-3 px-6 md:px-8 py-4 md:py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm">
                                <Calendar className="w-5 h-5 text-cyan-500"/> 
                                {config.event_date}
                           </div>
                       </motion.div>
                       
                       {/* STATS COUNTER REAL-TIME */}
-                      <div className="mt-20 flex flex-wrap gap-12 border-t border-slate-200 pt-10">
+                      <div className="mt-12 md:mt-20 flex flex-wrap gap-8 md:gap-12 border-t border-slate-200 pt-8 md:pt-10">
                           <div>
                               <div className="text-5xl font-black text-slate-900 flex items-baseline">
                                   <Counter to={realCounts.campuses}/><span className="text-cyan-600 text-3xl ml-1">+</span>
@@ -781,12 +781,12 @@ export default function Home() {
                 whileInView="visible" 
                 viewport={{ once: true }} 
                 variants={fadeUpVariant} 
-                className="py-32 px-6 max-w-7xl mx-auto"
+                className="py-20 md:py-32 px-4 md:px-6 max-w-7xl mx-auto"
             >
                 <motion.div style={{ y: yVideo }} className="relative">
                     <div 
                         onClick={() => youtubeId ? setVideoOpen(true) : showNotify("Video belum tersedia.", "error")}
-                        className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-screen flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
+                        className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-[70vh] md:min-h-screen flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
                     >
                         <div className="absolute inset-0 bg-linear-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
                         <div 
@@ -801,8 +801,8 @@ export default function Home() {
                             >
                                 <PlayCircle className="w-14 h-14 text-white ml-2 fill-white/20" />
                             </motion.div>
-                            <h2 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter">{config.youtube_video_title || 'AFTERMOVIE'}</h2>
-                            <p className="text-slate-300 text-2xl font-light">Saksikan keseruan tahun lalu & rasakan atmosfernya.</p>
+                            <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-4 md:mb-6 tracking-tighter">{config.youtube_video_title || 'AFTERMOVIE'}</h2>
+                            <p className="text-slate-300 text-lg sm:text-xl md:text-2xl font-light">Saksikan keseruan tahun lalu & rasakan atmosfernya.</p>
                         </div>
                     </div>
                 </motion.div>
@@ -834,7 +834,7 @@ export default function Home() {
             </section>
 
             {/* BENTO GRID AGENDA */}
-            <section className="py-32 px-6 max-w-7xl mx-auto">
+            <section className="py-20 md:py-32 px-4 md:px-6 max-w-7xl mx-auto">
                 <div className="mb-16">
                     <span className="text-cyan-600 font-bold tracking-widest uppercase text-sm">Highlights</span>
                     <h2 className="text-4xl font-black text-slate-900 mt-2">Agenda Utama</h2>
@@ -843,9 +843,9 @@ export default function Home() {
                     initial="hidden" 
                     whileInView="visible" 
                     variants={staggerContainer} 
-                    className="grid grid-cols-1 md:grid-cols-4 gap-6 h-auto md:h-96"
+                    className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 h-auto lg:h-96"
                 >
-                    <motion.div variants={fadeUpVariant} className="md:col-span-2 md:row-span-2 rounded-[2.5rem] bg-white border border-slate-200 p-10 flex flex-col justify-between shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative">
+                    <motion.div variants={fadeUpVariant} className="lg:col-span-2 lg:row-span-2 rounded-[2.5rem] bg-white border border-slate-200 p-6 md:p-10 flex flex-col justify-between shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-50 rounded-full translate-x-1/3 -translate-y-1/3 group-hover:scale-125 transition-transform duration-700"></div>
                         <div className="relative z-10">
                             <span className="bg-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-6 inline-block">Highlight Utama</span>
@@ -858,7 +858,7 @@ export default function Home() {
                         </div>
                     </motion.div>
 
-                    <motion.div variants={fadeUpVariant} className="md:col-span-2 rounded-[2.5rem] bg-slate-900 text-white p-10 flex flex-col md:flex-row items-center justify-between shadow-xl relative overflow-hidden group">
+                    <motion.div variants={fadeUpVariant} className="lg:col-span-2 rounded-[2.5rem] bg-slate-900 text-white p-6 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-xl relative overflow-hidden group">
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
                         <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-600/30 rounded-full blur-3xl group-hover:bg-purple-600/50 transition-colors"></div>
                         <div className="relative z-10 max-w-xs">
@@ -870,7 +870,7 @@ export default function Home() {
                         </div>
                     </motion.div>
 
-                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-blue-50 border border-blue-100 p-8 hover:bg-blue-100 transition-colors flex flex-col justify-center">
+                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-blue-50 border border-blue-100 p-6 md:p-8 hover:bg-blue-100 transition-colors flex flex-col justify-center">
                         <div className="w-12 h-12 bg-blue-200 text-blue-700 rounded-2xl flex items-center justify-center mb-4">
                             {highlights?.[2]?.icon ? (
                                 <HighlightIcon name={String(highlights?.[2]?.icon)} className="w-6 h-6" />
@@ -880,7 +880,7 @@ export default function Home() {
                         <p className="text-blue-700/80 text-sm">{highlights?.[2]?.description}</p>
                     </motion.div>
 
-                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-white border border-slate-200 p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500 transition-colors group">
+                    <motion.div variants={fadeUpVariant} className="rounded-[2.5rem] bg-white border border-slate-200 p-6 md:p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500 transition-colors group">
                         <Calendar className="w-10 h-10 text-cyan-500 mb-4 group-hover:scale-110 transition-transform" />
                         <div className="text-4xl font-black text-slate-900">{typeof config.event_date === "string" ? config.event_date.split(" ")[0] : ""}</div>
                         <div className="text-slate-400 font-bold text-sm uppercase tracking-widest">{typeof config.event_date === "string" ? config.event_date.split(" ").slice(1).join(" ") : ""}</div>
