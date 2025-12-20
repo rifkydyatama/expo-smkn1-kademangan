@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase"; 
+import CertificateView from "@/components/CertificateView";
 import { 
   Loader2, 
   Sparkles, 
@@ -292,7 +293,7 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
 // --- 6. MAIN PAGE COMPONENT ---
 export default function Home() {
   const [isChecking, setIsChecking] = useState(true);
-  const [view, setView] = useState<"landing" | "register" | "ticket" | "maintenance">("landing");
+    const [view, setView] = useState<"landing" | "register" | "ticket" | "certificate" | "maintenance">("landing");
   const [siteMode, setSiteMode] = useState("LIVE"); // Default LIVE
     const [initError, setInitError] = useState<string | null>(null);
   
@@ -312,6 +313,11 @@ export default function Home() {
   const [ticketData, setTicketData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+    // --- CERTIFICATE CHECK STATE (VERBOSE) ---
+    const [certificateTicketCode, setCertificateTicketCode] = useState("");
+    const [certificateParticipant, setCertificateParticipant] = useState<any>(null);
+    const [certificateChecking, setCertificateChecking] = useState(false);
 
   // --- NEW: NOTIFICATION STATE ---
   const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
@@ -563,6 +569,52 @@ export default function Home() {
       } 
   }
 
+  // --- CERTIFICATE CHECK LOGIC ---
+  const openCertificate = useCallback(() => {
+      setCertificateTicketCode("");
+      setCertificateParticipant(null);
+      setView("certificate");
+  }, []);
+
+  const handleCheckCertificate = useCallback(async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      const normalized = String(certificateTicketCode ?? "").trim();
+      if (!normalized) {
+          showNotify("Masukkan Ticket Code / UUID terlebih dahulu.", "error");
+          return;
+      }
+
+      try {
+          setCertificateChecking(true);
+          setCertificateParticipant(null);
+
+          const { data, error } = await supabase
+              .from("participants")
+              .select("id, name, origin_school, ticket_code, status, check_in_time")
+              .eq("ticket_code", normalized)
+              .eq("status", "CHECKED-IN")
+              .maybeSingle();
+
+          if (error) {
+              showNotify("Gagal cek sertifikat: " + error.message, "error");
+              return;
+          }
+
+          if (!data) {
+              showNotify("Sertifikat tidak valid atau peserta belum check-in.", "error");
+              return;
+          }
+
+          setCertificateParticipant(data);
+      } catch (err: any) {
+          showNotify("Gagal cek sertifikat. Coba lagi.", "error");
+          console.error("[certificate] handleCheckCertificate error", err);
+      } finally {
+          setCertificateChecking(false);
+      }
+  }, [certificateTicketCode, showNotify]);
+
   // --- RENDER LOADING ---
   if (isChecking) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
@@ -636,20 +688,35 @@ export default function Home() {
                     </div>
                     <span className="text-slate-900 text-xl sm:text-2xl md:text-3xl whitespace-nowrap">EXPO<span className="text-cyan-600">SMKN1</span></span>
                 </div>
-                
-                {view === "landing" && (
-                    <button 
-                        onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
-                        className={`hidden md:flex px-8 py-4 rounded-full font-bold transition-all shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-1 items-center gap-3 text-sm ${
-                            config.status === "CLOSED" 
-                            ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
-                            : "bg-slate-900 text-white hover:bg-cyan-600"
+
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={openCertificate}
+                        className={`px-5 py-3 rounded-full font-bold transition-all shadow-sm border text-sm flex items-center gap-2 ${
+                            view === "certificate"
+                                ? "bg-cyan-600 text-white border-cyan-600 shadow-cyan-500/30"
+                                : "bg-white/70 text-slate-700 border-white/40 hover:bg-white hover:text-slate-900"
                         }`}
                     >
-                        {config.status === "CLOSED" ? <Lock className="w-4 h-4"/> : <Sparkles className="w-4 h-4"/>}
-                        {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}
+                        <Ticket className="w-4 h-4" />
+                        Cek Sertifikat
                     </button>
-                )}
+
+                    {view === "landing" && (
+                        <button 
+                            onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error") : setView("register")} 
+                            className={`hidden md:flex px-8 py-4 rounded-full font-bold transition-all shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-1 items-center gap-3 text-sm ${
+                                config.status === "CLOSED" 
+                                ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+                                : "bg-slate-900 text-white hover:bg-cyan-600"
+                            }`}
+                        >
+                            {config.status === "CLOSED" ? <Lock className="w-4 h-4"/> : <Sparkles className="w-4 h-4"/>}
+                            {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}
+                        </button>
+                    )}
+                </div>
             </div>
         </nav>
       )}
@@ -1037,6 +1104,106 @@ export default function Home() {
                     </button>
                 </form>
              </div>
+          </motion.div>
+        )}
+
+        {/* === VIEW 2.5: CERTIFICATE CHECK (NEW FEATURE) === */}
+        {view === "certificate" && (
+          <motion.div
+            key="certificate"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center p-4 md:p-8 overflow-y-auto"
+          >
+              <div className="w-full max-w-6xl">
+                  <div className="bg-white rounded-[2.5rem] shadow-2xl border border-white/40 overflow-hidden">
+                      <div className="p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
+                          <div>
+                              <div className="text-xs font-black tracking-[0.35em] uppercase text-cyan-700">
+                                  Verification Portal
+                              </div>
+                              <h2 className="mt-2 text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                                  Cek Sertifikat
+                              </h2>
+                              <p className="mt-2 text-slate-500 font-medium">
+                                  Masukkan Ticket Code / UUID. Sertifikat hanya tersedia setelah peserta berhasil check-in.
+                              </p>
+                          </div>
+                          <button
+                              type="button"
+                              onClick={() => setView("landing")}
+                              className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-black hover:bg-red-50 hover:text-red-600 transition-colors"
+                              aria-label="Tutup"
+                          >
+                              ✕
+                          </button>
+                      </div>
+
+                      <div className="p-8 md:p-10">
+                          <form onSubmit={handleCheckCertificate} className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+                              <div>
+                                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                      Ticket Code / UUID
+                                  </label>
+                                  <input
+                                      value={certificateTicketCode}
+                                      onChange={(e) => setCertificateTicketCode(e.target.value)}
+                                      placeholder="Contoh: 550e8400-e29b-41d4-a716-446655440000"
+                                      className="w-full px-6 py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 font-black text-slate-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all placeholder:font-semibold placeholder:text-slate-300"
+                                  />
+                              </div>
+
+                              <button
+                                  type="submit"
+                                  disabled={certificateChecking}
+                                  className="h-[64px] px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
+                              >
+                                  {certificateChecking ? (
+                                      <>
+                                          <Loader2 className="animate-spin" />
+                                          MEMERIKSA...
+                                      </>
+                                  ) : (
+                                      <>
+                                          <CheckCircle className="w-5 h-5" />
+                                          CEK SERTIFIKAT
+                                      </>
+                                  )}
+                              </button>
+                          </form>
+
+                          <div className="mt-10">
+                              {!certificateParticipant && (
+                                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center">
+                                      <div className="w-20 h-20 rounded-3xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto mb-6 border border-cyan-100">
+                                          <Ticket className="w-10 h-10" />
+                                      </div>
+                                      <div className="text-xl font-black text-slate-900">Masukkan kode untuk melihat sertifikat</div>
+                                      <div className="mt-2 text-slate-500 font-medium">
+                                          Pastikan peserta sudah scan masuk (CHECKED-IN).
+                                      </div>
+                                  </div>
+                              )}
+
+                              {certificateParticipant && (
+                                  <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+                                      <CertificateView
+                                          name={certificateParticipant.name}
+                                          school={certificateParticipant.origin_school}
+                                          ticketCode={certificateParticipant.ticket_code}
+                                          date={
+                                              typeof config.event_date === "string" && config.event_date.trim()
+                                                  ? config.event_date
+                                                  : new Date().toLocaleDateString("id-ID")
+                                          }
+                                      />
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+              </div>
           </motion.div>
         )}
 
