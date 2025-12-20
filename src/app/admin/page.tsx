@@ -1116,21 +1116,34 @@ export default function AdminPage() {
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Youtube size={24} className="text-red-600"/> Video Aftermovie
                         </h3>
-                        <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Youtube Video ID / Link</label>
-                            <div className="flex items-center gap-3 mt-2">
-                                <span className="text-slate-400 text-sm font-mono bg-slate-50 p-4 rounded-xl border border-slate-200 select-none hidden md:block">youtube.com/watch?v=</span>
-                                <input 
-                                    type="text" 
-                                    value={settings.youtube_video_id || ""} 
-                                    onChange={e => setSettings({...settings, youtube_video_id: e.target.value})} 
-                                    className="flex-1 p-4 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-red-500 outline-none placeholder:text-slate-300 font-bold text-slate-700" 
-                                    placeholder="Contoh: jfKfPfyJRdk atau Link Full"
+                        <div className="space-y-5">
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Judul Video</label>
+                                <input
+                                    type="text"
+                                    value={settings.youtube_video_title || ""}
+                                    onChange={e => setSettings({ ...settings, youtube_video_title: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                    placeholder="Contoh: AFTERMOVIE 2024"
                                 />
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
-                                <AlertCircle size={10}/> Support format Link Panjang maupun ID Pendek. Thumbnail akan otomatis diambil.
-                            </p>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Youtube Video ID / Link</label>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-slate-400 text-sm font-mono bg-slate-50 p-4 rounded-xl border border-slate-200 select-none hidden md:block">youtube.com/watch?v=</span>
+                                    <input 
+                                        type="text" 
+                                        value={settings.youtube_video_id || ""} 
+                                        onChange={e => setSettings({...settings, youtube_video_id: e.target.value})} 
+                                        className="flex-1 p-4 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-red-500 outline-none placeholder:text-slate-300 font-bold text-slate-700" 
+                                        placeholder="Contoh: jfKfPfyJRdk atau Link Full"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                                    <AlertCircle size={10}/> Support format Link Panjang maupun ID Pendek. Thumbnail akan otomatis diambil.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
