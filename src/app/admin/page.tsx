@@ -32,7 +32,8 @@ import {
   Timer,        // Icon Coming Soon
   Globe,        // Icon Live
   Bell,         // Icon Notifikasi
-  ShieldCheck   // Icon Secure
+  ShieldCheck,  // Icon Secure
+  Image as ImageIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -117,6 +118,7 @@ export default function AdminPage() {
   const [newCampusDesc, setNewCampusDesc] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [mainLogoFile, setMainLogoFile] = useState<File | null>(null);
 
   // --- 4. LOGIN SYSTEM ---
   const handleLogin = (e: React.FormEvent) => {
@@ -234,32 +236,55 @@ export default function AdminPage() {
   // --- 7. FITUR: UPLOAD GAMBAR LOGO ---
   const handleUploadImage = async (file: File): Promise<string | null> => {
     try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-        // Upload ke Bucket 'campus-logos'
-        const { error: uploadError } = await supabase.storage
-            .from('campus-logos')
-            .upload(filePath, file);
+      // Upload ke Bucket 'campus-logos'
+      const { error: uploadError } = await supabase.storage
+        .from("campus-logos")
+        .upload(filePath, file);
 
-        if (uploadError) {
-            throw uploadError;
-        }
+      if (uploadError) {
+        throw uploadError;
+      }
 
-        // Ambil Public URL
-        const { data } = supabase.storage
-            .from('campus-logos')
-            .getPublicUrl(filePath);
+      // Ambil Public URL
+      const { data } = supabase.storage
+        .from("campus-logos")
+        .getPublicUrl(filePath);
 
-        return data.publicUrl;
+      return data.publicUrl;
     } catch (error: any) {
-        showNotify("Gagal Upload Gambar: " + error.message, "error");
-        return null;
+      showNotify("Gagal Upload Gambar: " + error.message, "error");
+      return null;
     }
   };
 
-  // --- 8. CRUD ACTIONS ---
+  const handleUpdateMainLogo = async () => {
+    if (!mainLogoFile) return showNotify("Pilih gambar logo dulu!", "error");
+    setLoading(true);
+
+    // Kita pakai fungsi upload yang sama dengan kampus
+    const url = await handleUploadImage(mainLogoFile);
+
+    if (url) {
+      // Simpan URL ke tabel settings dengan key 'event_logo_url'
+      await supabase
+        .from("event_settings")
+        .upsert(
+          { key: "event_logo_url", value: url },
+          { onConflict: "key" }
+        );
+
+      setMainLogoFile(null);
+      showNotify("Logo Website Berhasil Diupdate!", "success");
+      fetchAllData();
+    }
+
+    setLoading(false);
+  };
+    // --- 8. CRUD ACTIONS ---
   
   // Simpan Konfigurasi
   const saveSettings = async () => {
@@ -387,6 +412,7 @@ export default function AdminPage() {
       </div>
     </div>
   );
+
 
   // --- 10. RENDER UI: DASHBOARD (MAIN) ---
   return (
@@ -780,6 +806,46 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
                 <div className="space-y-8">
                     {/* Hero Section Card */}
+                    {/* ... (Di bawah penutup div Hero Section Content) ... */}
+
+                    {/* --- KOTAK UPLOAD LOGO SEKOLAH (BARU) --- */}
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
+                            <ImageIcon size={20} className="text-cyan-600"/> Logo Sekolah / Event
+                        </h3>
+                        <p className="text-xs text-slate-400 mb-4">Logo ini akan muncul di pojok kiri atas website utama menggantikan logo default.</p>
+                        
+                        <div className="flex gap-4 items-center">
+                             {/* Preview Logo Saat Ini */}
+                             {settings.event_logo_url && (
+                                <div className="h-20 w-20 bg-slate-50 border rounded-xl p-2 flex items-center justify-center">
+                                    <img src={settings.event_logo_url} alt="Current Logo" className="max-h-full max-w-full object-contain"/>
+                                </div>
+                             )}
+                             
+                             {/* Input File */}
+                             <div className="flex-1">
+                                 <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-all border-slate-300">
+                                    <span className="text-xs font-bold text-slate-500 text-center">
+                                        {mainLogoFile ? mainLogoFile.name : "Klik untuk Pilih Logo Baru (PNG Transparan)"}
+                                    </span>
+                                    <input type="file" accept="image/*" onChange={e => setMainLogoFile(e.target.files ? e.target.files[0] : null)} className="hidden" />
+                                 </label>
+                             </div>
+                        </div>
+                        
+                        <button 
+                            onClick={handleUpdateMainLogo} 
+                            disabled={loading || !mainLogoFile} 
+                            className="w-full mt-4 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-cyan-600 transition-colors disabled:opacity-50 flex justify-center gap-2"
+                        >
+                            {loading ? <RefreshCw className="animate-spin" size={16}/> : <UploadCloud size={16}/>}
+                            Upload & Ganti Logo
+                        </button>
+                    </div>
+                    {/* ------------------------------------------------ */}
+
+                    {/* ... (Di atas kotak Video ID Setting) ... */}
                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] -mr-10 -mt-10 z-0"></div>
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3 relative z-10">

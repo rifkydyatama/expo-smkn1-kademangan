@@ -465,13 +465,25 @@ export default function Home() {
         <nav className="sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-24 transition-all">
             <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
                 <div 
-                    className="flex items-center gap-3 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
+                    className="flex items-center gap-4 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
                     onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
                 >
-                    <div className="w-12 h-12 bg-linear-to-tr from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
-                        <Cpu className="w-7 h-7"/>
-                    </div>
-                    <span className="text-slate-900 text-3xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
+                    {config.event_logo_url ? (
+                        // Jika Admin sudah upload logo, tampilkan logo
+                        <img 
+                          src={config.event_logo_url} 
+                          alt="Event Logo" 
+                          className="h-12 w-auto object-contain hover:scale-105 transition-transform" 
+                        />
+                    ) : (
+                        // Jika belum upload, tampilkan Icon Default Keren
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-linear-to-tr from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
+                                <Cpu className="w-6 h-6"/>
+                            </div>
+                            <span className="text-slate-900 text-2xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
+                        </div>
+                    )}
                 </div>
                 
                 {view === "landing" && (
@@ -925,7 +937,7 @@ export default function Home() {
                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Gate</div>
                                <div className="font-black text-slate-800 text-xl flex flex-col leading-none">
                                    <span>MAIN</span>
-                                   <span className="text-xs text-slate-400 font-bold">HALL</span>
+                                   <span className="text-xs text-slate-400 font-bold">SMKN 1 Kademangan</span>
                                </div>
                            </div>
                        </div>
