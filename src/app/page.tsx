@@ -93,6 +93,38 @@ const HighlightIcon = ({ name, className }: { name: string; className?: string }
     return null;
 };
 
+const getYoutubeId = (raw: unknown): string => {
+    const input = String(raw ?? "").trim();
+    if (!input) return "";
+
+    // Already looks like an ID
+    if (/^[a-zA-Z0-9_-]{6,}$/.test(input) && !input.includes("/") && !input.includes("?")) {
+        return input;
+    }
+
+    try {
+        const url = new URL(input);
+
+        // youtube.com/watch?v=ID
+        const vParam = url.searchParams.get("v");
+        if (vParam) return vParam;
+
+        // youtu.be/ID
+        if (url.hostname.includes("youtu.be")) {
+            const idFromPath = url.pathname.replace("/", "").trim();
+            if (idFromPath) return idFromPath;
+        }
+
+        // youtube.com/embed/ID
+        const embedMatch = url.pathname.match(/\/embed\/([^/?#]+)/);
+        if (embedMatch?.[1]) return embedMatch[1];
+
+        return "";
+    } catch {
+        return "";
+    }
+};
+
 // --- 2. COMPONENT: ANIMATED COUNTER (PRECISE) ---
 const Counter = memo(({ to }: { to: number }) => {
   const nodeRef = useRef<HTMLSpanElement>(null);
@@ -298,6 +330,9 @@ export default function Home() {
   const yHero = useTransform(scrollY, [0, 500], [0, 200]);
   const opacityHero = useTransform(scrollY, [0, 300], [1, 0]);
   const yVideo = useTransform(scrollY, [500, 1000], [50, -50]);
+
+    const youtubeId = getYoutubeId(config.youtube_video_id);
+    const youtubeThumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg` : "";
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -750,11 +785,14 @@ export default function Home() {
             >
                 <motion.div style={{ y: yVideo }} className="relative">
                     <div 
-                        onClick={() => config.youtube_video_id ? setVideoOpen(true) : showNotify("Video belum tersedia.", "error")}
+                        onClick={() => youtubeId ? setVideoOpen(true) : showNotify("Video belum tersedia.", "error")}
                         className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-screen flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
                     >
                         <div className="absolute inset-0 bg-linear-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
-                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-[1.5s]"></div>
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-[1.5s]"
+                            style={youtubeThumbnailUrl ? { backgroundImage: `url(${youtubeThumbnailUrl})` } : undefined}
+                        ></div>
                         
                         <div className="relative z-10 text-center p-10">
                             <motion.div 
@@ -763,7 +801,7 @@ export default function Home() {
                             >
                                 <PlayCircle className="w-14 h-14 text-white ml-2 fill-white/20" />
                             </motion.div>
-                            <h2 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter">AFTERMOVIE 2024</h2>
+                            <h2 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter">{config.youtube_video_title || 'AFTERMOVIE'}</h2>
                             <p className="text-slate-300 text-2xl font-light">Saksikan keseruan tahun lalu & rasakan atmosfernya.</p>
                         </div>
                     </div>
@@ -1104,10 +1142,10 @@ export default function Home() {
                className="w-full max-w-6xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 ring-1 ring-white/20"
                onClick={(e) => e.stopPropagation()}
              >
-                                {config.youtube_video_id ? (
+                                {youtubeId ? (
                                     <iframe 
                                         className="w-full h-full" 
-                                        src={`https://www.youtube.com/embed/${config.youtube_video_id}?autoplay=1&modestbranding=1&rel=0`} 
+                                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`} 
                                         title="Aftermovie" 
                                         allow="autoplay; encrypted-media" 
                                         allowFullScreen
