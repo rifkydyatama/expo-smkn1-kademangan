@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   LayoutDashboard, 
@@ -30,8 +30,10 @@ import {
   Unlock,
   Construction, // Icon Maintenance
   Timer,        // Icon Coming Soon
-  Globe         // Icon Live
+  Globe,        // Icon Live
+  Bell          // Icon Notifikasi
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- 1. DEFINISI TIPE DATA (LENGKAP) ---
 type Participant = { 
@@ -85,6 +87,17 @@ export default function AdminPage() {
   
   // UI Helper State
   const [search, setSearch] = useState("");
+  
+  // --- NOTIFIKASI STATE (NEW) ---
+  const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
+
+  const showNotify = (message: string, type: "info" | "error" | "success" = "info") => {
+      setNotification({ show: true, message, type });
+      // Auto hide after 3 seconds
+      setTimeout(() => {
+          setNotification({ show: false, message: "", type: "info" });
+      }, 3000);
+  };
 
   // --- 3. STATE KHUSUS FITUR ---
   
@@ -106,12 +119,12 @@ export default function AdminPage() {
   // --- 4. LOGIN SYSTEM ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Hardcoded credentials sederhana (Bisa diganti Supabase Auth beneran nanti)
     if (email === "admin" && password === "admin123") {
       setSession(true);
       fetchAllData();
+      showNotify("Berhasil Login! Selamat datang Admin.", "success");
     } else { 
-      alert("⛔ Akses Ditolak! Username atau Password salah."); 
+      showNotify("Akses Ditolak! Username atau Password salah.", "error");
     }
   };
 
@@ -148,7 +161,7 @@ export default function AdminPage() {
 
     } catch (error) {
         console.error("Gagal mengambil data:", error);
-        alert("Gagal koneksi ke database. Cek internet.");
+        showNotify("Gagal koneksi ke database. Cek internet.", "error");
     } finally {
         setRefreshing(false);
     }
@@ -177,9 +190,11 @@ export default function AdminPage() {
 
     if (error || !user) {
         setScanStatus("ERROR"); // ID Tidak Ditemukan
+        showNotify("ID Tiket tidak ditemukan dalam database!", "error");
     } else if (user.status === "CHECKED-IN") {
         setScanResult(user);
         setScanStatus("USED");  // Tiket sudah dipakai
+        showNotify(`Tiket atas nama ${user.name} SUDAH DIGUNAKAN!`, "error");
     } else {
         // 2. Update Status jadi Hadir (Check-in)
         await supabase
@@ -192,6 +207,7 @@ export default function AdminPage() {
         
         setScanResult(user);
         setScanStatus("SUCCESS"); // Berhasil masuk
+        showNotify(`Check-in Berhasil: ${user.name}`, "success");
         fetchAllData(); // Refresh data global untuk update counter
     }
     
@@ -210,7 +226,7 @@ export default function AdminPage() {
         .upload(fileName, file, { cacheControl: '3600', upsert: false });
     
     if (error) { 
-        alert("Gagal Upload Gambar: " + error.message); 
+        showNotify("Gagal Upload Gambar: " + error.message, "error"); 
         return null; 
     }
     
@@ -232,13 +248,13 @@ export default function AdminPage() {
        await supabase.from("event_settings").upsert({ key, value: String(value) }, { onConflict: 'key' });
     }
     setLoading(false); 
-    alert("✅ Semua konfigurasi berhasil disimpan!"); 
+    showNotify("✅ Semua konfigurasi berhasil disimpan!", "success"); 
     fetchAllData();
   };
 
   // Tambah Kampus Baru (dengan Upload)
   const addCampus = async () => {
-    if (!newCampusName) return alert("⚠️ Nama Kampus Wajib Diisi!");
+    if (!newCampusName) return showNotify("⚠️ Nama Kampus Wajib Diisi!", "error");
     setUploading(true);
     
     let finalUrl = "";
@@ -253,11 +269,12 @@ export default function AdminPage() {
         logo_url: finalUrl
     });
 
-    if (error) alert("Gagal simpan kampus: " + error.message);
+    if (error) showNotify("Gagal simpan kampus: " + error.message, "error");
     else {
         setNewCampusName(""); 
         setNewCampusDesc(""); 
         setLogoFile(null); 
+        showNotify("Data Kampus berhasil ditambahkan!", "success");
         fetchAllData();
     }
     setUploading(false);
@@ -269,6 +286,7 @@ export default function AdminPage() {
     // Reset form
     setNewRundown({time:"", title:"", description:""}); 
     setNewFaq({question:"", answer:""});
+    showNotify("Data berhasil ditambahkan!", "success");
     fetchAllData();
   };
 
@@ -276,6 +294,7 @@ export default function AdminPage() {
   const deleteItem = async (table: string, id: number) => {
     if(confirm("⚠️ Apakah Anda yakin ingin menghapus data ini secara permanen?")) {
         await supabase.from(table).delete().eq("id", id);
+        showNotify("Data berhasil dihapus.", "success");
         fetchAllData();
     }
   };
@@ -291,11 +310,29 @@ export default function AdminPage() {
     link.href = encodeURI(csvContent); 
     link.download = `Laporan_Peserta_Expo_${new Date().toLocaleDateString()}.csv`; 
     link.click();
+    showNotify("Laporan CSV berhasil diunduh!", "success");
   };
 
   // --- 9. RENDER UI: LOGIN PAGE ---
   if (!session) return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Toast Notification for Login */}
+      <AnimatePresence>
+        {notification.show && (
+            <motion.div 
+                initial={{ opacity: 0, y: -50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
+                className={`fixed top-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 z-50 font-bold text-sm ${
+                    notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                }`}
+            >
+                {notification.type === 'error' ? <AlertCircle size={18}/> : <CheckCircle size={18}/>}
+                {notification.message}
+            </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
         <div className="text-center mb-10">
@@ -336,6 +373,37 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
       
+      {/* GLOBAL NOTIFICATION TOAST */}
+      <AnimatePresence>
+        {notification.show && (
+            <motion.div 
+                initial={{ opacity: 0, y: 50, x: 50 }}
+                animate={{ opacity: 1, y: 0, x: 0 }}
+                exit={{ opacity: 0, y: 50, x: 50 }}
+                className={`fixed bottom-10 right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[100] border-l-8 ${
+                    notification.type === 'error' ? 'bg-white border-red-500 text-red-600' : 
+                    notification.type === 'success' ? 'bg-white border-green-500 text-green-600' :
+                    'bg-slate-900 border-cyan-500 text-white'
+                }`}
+            >
+                <div className={`p-2 rounded-full ${
+                    notification.type === 'error' ? 'bg-red-100' : 
+                    notification.type === 'success' ? 'bg-green-100' :
+                    'bg-slate-800'
+                }`}>
+                    {notification.type === 'error' ? <AlertCircle size={20}/> : 
+                     notification.type === 'success' ? <CheckCircle size={20}/> : 
+                     <Bell size={20}/>}
+                </div>
+                <div>
+                    <h4 className="font-bold text-sm uppercase">{notification.type === 'error' ? 'Gagal' : notification.type === 'success' ? 'Berhasil' : 'Info'}</h4>
+                    <p className="text-xs font-medium opacity-90">{notification.message}</p>
+                </div>
+                <button onClick={() => setNotification({ ...notification, show: false })}><XCircle size={18} className="opacity-50 hover:opacity-100"/></button>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* SIDEBAR NAVIGATION */}
       <aside className="w-72 bg-white border-r border-slate-200 flex-col hidden md:flex fixed h-full z-20 shadow-sm">
         <div className="p-8 border-b border-slate-100">
