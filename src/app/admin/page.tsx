@@ -6,9 +6,13 @@ import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { 
   LayoutDashboard, 
   Users, 
+    User,
   MonitorPlay, 
   School, 
   Calendar, 
+    Star,
+    Award,
+    Zap,
   HelpCircle, 
   LogOut, 
   Search, 
@@ -77,6 +81,13 @@ type Faq = {
   answer: string; 
 };
 
+type Highlight = {
+    id: number;
+    title: string;
+    description: string;
+    icon: "Star" | "Award" | "Zap" | "User";
+};
+
 // ============================================================================
 // 2. MAIN ADMIN COMPONENT
 // ============================================================================
@@ -97,6 +108,7 @@ export default function AdminPage() {
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [rundown, setRundown] = useState<Rundown[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
+    const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [settings, setSettings] = useState<any>({});
   
   // UI Helper State
@@ -130,6 +142,11 @@ export default function AdminPage() {
   // B. Data Master Inputs
   const [newRundown, setNewRundown] = useState({ time: "", title: "", description: "" });
   const [newFaq, setNewFaq] = useState({ question: "", answer: "" });
+    const [newHighlight, setNewHighlight] = useState<{ title: string; description: string; icon: Highlight["icon"] }>({
+            title: "",
+            description: "",
+            icon: "Star"
+    });
 
   // C. Upload Management
   const [newCampusName, setNewCampusName] = useState("");
@@ -137,6 +154,7 @@ export default function AdminPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null); // Logo Kampus
   const [mainLogoFile, setMainLogoFile] = useState<File | null>(null); // Main Logo Website
   const [uploading, setUploading] = useState(false);
+    const [highlightsSaving, setHighlightsSaving] = useState(false);
 
   // ============================================================================
   // 3. CORE LOGIC & FUNCTIONS
@@ -190,6 +208,11 @@ export default function AdminPage() {
         const { data: f, error: faqError } = await supabase.from("event_faq").select("*").order('id'); 
         if(f) setFaqs(f);
         if (faqError) throw faqError;
+
+        // 6. Highlights / Info Utama
+        const { data: h, error: highlightsError } = await supabase.from("event_highlights").select("*").order('id');
+        if (h) setHighlights(h as Highlight[]);
+        if (highlightsError) throw highlightsError;
 
     } catch (error) {
         console.error("Gagal mengambil data:", error);
@@ -489,6 +512,34 @@ export default function AdminPage() {
         fetchAllData();
     }
   };
+
+    const addHighlight = async () => {
+        if (!newHighlight.title) {
+            showNotify("Judul Highlight wajib diisi!", "error");
+            return;
+        }
+
+        setHighlightsSaving(true);
+        try {
+            const payload = {
+                title: newHighlight.title,
+                description: newHighlight.description,
+                icon: newHighlight.icon
+            };
+
+            const { error } = await supabase.from("event_highlights").insert(payload);
+            if (error) {
+                showNotify("Gagal tambah highlight: " + error.message, "error");
+                return;
+            }
+
+            setNewHighlight({ title: "", description: "", icon: "Star" });
+            showNotify("Highlight berhasil ditambahkan!", "success");
+            fetchAllData();
+        } finally {
+            setHighlightsSaving(false);
+        }
+    };
 
   const deleteItem = async (table: string, id: number) => {
     if(confirm("⚠️ Hapus data ini permanen? Tindakan tidak bisa dibatalkan.")) {
@@ -1237,6 +1288,91 @@ export default function AdminPage() {
 
                 {/* 2. RUNDOWN & FAQ (Stacked Column) */}
                 <div className="lg:col-span-2 flex flex-col gap-8">
+
+                    {/* HIGHLIGHTS / INFO UTAMA */}
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px] relative overflow-hidden">
+                        <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
+                            <span className="flex items-center gap-2 text-slate-800"><Star size={18} className="text-yellow-500"/> Highlights / Info Utama</span>
+                            <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{highlights.length}</span>
+                        </div>
+
+                        <div className="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/30">
+                            {highlights.map((h) => (
+                                <div key={h.id} className="p-4 border border-slate-200 rounded-2xl bg-white hover:shadow-sm transition-all group relative">
+                                    <div className="flex items-start gap-3 pr-10">
+                                        <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-700 shrink-0">
+                                            {h.icon === "Star" ? <Star size={18} className="text-yellow-500"/> : null}
+                                            {h.icon === "Award" ? <Award size={18} className="text-yellow-500"/> : null}
+                                            {h.icon === "Zap" ? <Zap size={18} className="text-orange-500"/> : null}
+                                            {h.icon === "User" ? <User size={18} className="text-cyan-600"/> : null}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-sm text-slate-900">{h.title}</div>
+                                            <div className="text-xs text-slate-500 mt-1 leading-relaxed">{h.description}</div>
+                                            <div className="mt-2">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Icon:</span>
+                                                <span className="ml-2 text-[10px] font-mono bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">{h.icon}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => deleteItem('event_highlights', h.id)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-2">
+                                        <Trash2 size={16}/>
+                                    </button>
+                                </div>
+                            ))}
+
+                            {highlights.length === 0 && (
+                                <div className="text-center p-10 text-slate-400 text-sm italic border-2 border-dashed border-slate-200 rounded-2xl">
+                                    Belum ada highlights. Tambahkan di bawah.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t bg-white rounded-b-3xl space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="md:col-span-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Icon</label>
+                                    <select
+                                        value={newHighlight.icon}
+                                        onChange={e => setNewHighlight({ ...newHighlight, icon: e.target.value as Highlight["icon"] })}
+                                        className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 bg-white"
+                                    >
+                                        <option value="Star">Star</option>
+                                        <option value="Award">Award</option>
+                                        <option value="Zap">Zap</option>
+                                        <option value="User">User</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Title</label>
+                                    <input
+                                        value={newHighlight.title}
+                                        onChange={e => setNewHighlight({ ...newHighlight, title: e.target.value })}
+                                        placeholder="Judul highlight..."
+                                        className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Description</label>
+                                <input
+                                    value={newHighlight.description}
+                                    onChange={e => setNewHighlight({ ...newHighlight, description: e.target.value })}
+                                    placeholder="Deskripsi singkat..."
+                                    className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+                                />
+                            </div>
+
+                            <button
+                                onClick={addHighlight}
+                                disabled={highlightsSaving || !newHighlight.title}
+                                className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-yellow-500 hover:text-slate-900 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg"
+                            >
+                                {highlightsSaving ? <><RefreshCw className="animate-spin" size={16}/> Menyimpan...</> : <><Plus size={16}/> Simpan Highlight</>}
+                            </button>
+                        </div>
+                    </div>
                     
                     {/* RUNDOWN */}
                     <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px] relative overflow-hidden">
