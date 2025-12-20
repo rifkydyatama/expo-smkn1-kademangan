@@ -884,57 +884,134 @@ export default function AdminPage() {
                         </form>
                     </div>
 
-                    {/* STATUS CARD: SUKSES */}
-                    {scanStatus === "SUCCESS" && scanResult && (
-                        <div className="bg-green-100 border-2 border-green-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-green-500/30">
-                                <CheckCircle size={48}/>
-                            </div>
-                            <h2 className="text-4xl font-black text-green-700 tracking-tight">TIKET VALID!</h2>
-                            <p className="text-green-600 font-bold mt-2 text-lg">Silakan Masuk</p>
-                            
-                            <div className="mt-8 bg-white p-6 rounded-2xl border border-green-200 shadow-sm text-left relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-bl-full"></div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Peserta</div>
-                                <div className="text-2xl font-black text-slate-900 mb-4">{scanResult.name}</div>
-                                
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Asal Sekolah</div>
-                                <div className="text-lg font-bold text-slate-700">{scanResult.origin_school}</div>
-                            </div>
-                        </div>
-                    )}
+                    {/* SECURITY ACCESS STATUS PANEL */}
+                    <AnimatePresence mode="wait">
+                        {/* ACCESS GRANTED */}
+                        {scanStatus === "SUCCESS" && scanResult && (
+                            <motion.div
+                                key="scan-success"
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                                className="rounded-3xl shadow-2xl border-2 border-green-700 bg-gradient-to-br from-green-600 to-emerald-700 text-white overflow-hidden"
+                            >
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between gap-6">
+                                        <div>
+                                            <div className="text-[11px] font-black tracking-[0.25em] uppercase opacity-90">
+                                                Security Access System
+                                            </div>
+                                            <div className="text-4xl md:text-5xl font-black tracking-tight mt-2">
+                                                ACCESS GRANTED
+                                            </div>
+                                        </div>
+                                        <div className="w-20 h-20 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-xl">
+                                            <CheckCircle size={44} className="text-white" />
+                                        </div>
+                                    </div>
 
-                    {/* STATUS CARD: SUDAH DIPAKAI */}
-                    {scanStatus === "USED" && scanResult && (
-                        <div className="bg-orange-50 border-2 border-orange-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-orange-500/30">
-                                <AlertCircle size={48}/>
-                            </div>
-                            <h2 className="text-3xl font-black text-orange-700 tracking-tight">SUDAH DIPAKAI!</h2>
-                            <p className="text-orange-600 font-bold mt-2">Peserta ini sudah masuk sebelumnya.</p>
-                            
-                            <div className="mt-8 bg-white p-6 rounded-2xl border border-orange-200 shadow-sm text-left">
-                                <div className="text-xl font-bold text-slate-900">{scanResult.name}</div>
-                                <div className="text-sm text-slate-500 mb-4">{scanResult.origin_school}</div>
-                                
-                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3">
-                                    <Calendar size={18}/>
-                                    Waktu Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
+                                    <div className="mt-8 rounded-2xl bg-white/10 border border-white/15 p-6">
+                                        <div className="text-xs font-bold tracking-widest uppercase opacity-80">Participant</div>
+                                        <div className="text-5xl md:text-6xl font-black tracking-tight mt-2 leading-[1.05]">
+                                            {scanResult.name}
+                                        </div>
+
+                                        <div className="mt-6 grid grid-cols-1 gap-3">
+                                            <div>
+                                                <div className="text-xs font-bold tracking-widest uppercase opacity-80">School</div>
+                                                <div className="text-xl md:text-2xl font-black mt-1">
+                                                    {scanResult.origin_school}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
 
-                    {/* STATUS CARD: ERROR */}
-                    {scanStatus === "ERROR" && (
-                        <div className="bg-red-50 border-2 border-red-200 p-8 rounded-3xl text-center animate-in zoom-in duration-300">
-                            <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-xl shadow-red-500/30">
-                                <XCircle size={48}/>
-                            </div>
-                            <h2 className="text-3xl font-black text-red-700 tracking-tight">TIKET PALSU!</h2>
-                            <p className="text-red-600 font-bold mt-2">ID tiket tidak ditemukan di database.</p>
-                        </div>
-                    )}
+                        {/* ALREADY USED */}
+                        {scanStatus === "USED" && scanResult && (
+                            <motion.div
+                                key="scan-used"
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                                className="rounded-3xl shadow-2xl border-2 border-orange-700 bg-gradient-to-br from-orange-500 to-amber-600 text-white overflow-hidden"
+                            >
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between gap-6">
+                                        <div>
+                                            <div className="text-[11px] font-black tracking-[0.25em] uppercase opacity-90">
+                                                Security Access System
+                                            </div>
+                                            <div className="text-4xl md:text-5xl font-black tracking-tight mt-2">
+                                                ALREADY USED
+                                            </div>
+                                        </div>
+                                        <div className="w-20 h-20 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-xl">
+                                            <AlertCircle size={44} className="text-white" />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 rounded-2xl bg-white/10 border border-white/15 p-6">
+                                        <div className="text-xs font-bold tracking-widest uppercase opacity-80">Participant</div>
+                                        <div className="text-4xl md:text-5xl font-black tracking-tight mt-2 leading-[1.05]">
+                                            {scanResult.name}
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <div className="text-xs font-bold tracking-widest uppercase opacity-80">Previous Check-in Time</div>
+                                            <div className="mt-2 inline-flex items-center gap-3 rounded-xl bg-white/15 border border-white/20 px-4 py-3 font-black">
+                                                <Calendar size={18} className="opacity-90" />
+                                                <span className="text-lg">
+                                                    {scanResult.check_in_time
+                                                        ? new Date(scanResult.check_in_time).toLocaleString()
+                                                        : "-"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* ACCESS DENIED */}
+                        {scanStatus === "ERROR" && (
+                            <motion.div
+                                key="scan-error"
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                                className="rounded-3xl shadow-2xl border-2 border-red-700 bg-gradient-to-br from-red-600 to-rose-700 text-white overflow-hidden"
+                            >
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between gap-6">
+                                        <div>
+                                            <div className="text-[11px] font-black tracking-[0.25em] uppercase opacity-90">
+                                                Security Access System
+                                            </div>
+                                            <div className="text-4xl md:text-5xl font-black tracking-tight mt-2">
+                                                ACCESS DENIED
+                                            </div>
+                                        </div>
+                                        <div className="w-20 h-20 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-xl">
+                                            <XCircle size={44} className="text-white" />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 rounded-2xl bg-white/10 border border-white/15 p-6">
+                                        <div className="text-xs font-bold tracking-widest uppercase opacity-80">Message</div>
+                                        <div className="text-3xl md:text-4xl font-black tracking-tight mt-2">
+                                            Tiket Tidak Dikenal
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Kolom Kanan: List Riwayat Check-in */}
