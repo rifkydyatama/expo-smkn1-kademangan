@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { 
   LayoutDashboard, 
   Users, 
@@ -119,6 +120,13 @@ export default function AdminPage() {
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanStatus, setScanStatus] = useState<"IDLE" | "SUCCESS" | "ERROR" | "USED">("IDLE");
 
+    // Camera Scanner State (QR)
+    const [cameraOn, setCameraOn] = useState(false);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const scannerControlsRef = useRef<IScannerControls | null>(null);
+    const lastDecodedRef = useRef<string | null>(null);
+
   // B. Data Master Inputs
   const [newRundown, setNewRundown] = useState({ time: "", title: "", description: "" });
   const [newFaq, setNewFaq] = useState({ question: "", answer: "" });
@@ -189,68 +197,136 @@ export default function AdminPage() {
   };
 
   // --- GATE CHECK-IN (SMART SCANNER) ---
-  const handleCheckIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setScanResult(null);
-    
-    // Clean Input
-    let cleanId = scanId.trim();
-    if (cleanId.toUpperCase().startsWith("EXPO-")) {
-        cleanId = cleanId.replace(/EXPO-/i, "");
-    }
+    const verifyTicket = async (rawId: string) => {
+        setLoading(true);
+        setScanResult(null);
+        setScanStatus("IDLE");
 
-    if (!cleanId) {
-        setLoading(false);
-        return;
-    }
+        try {
+            // Clean Input
+            let cleanId = rawId.trim();
+            if (cleanId.toUpperCase().startsWith("EXPO-")) {
+                cleanId = cleanId.replace(/EXPO-/i, "");
+            }
 
-    // Logic: Hybrid Search (ID or UUID)
-    let user = null;
-    
-    // Check ID (Integer)
-    if (!isNaN(Number(cleanId))) {
-         const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
-         user = data;
-    } 
-    
-    // Check UUID
-    if (!user) {
-         const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
-         user = data;
-    }
+            if (!cleanId) return;
 
-    // Process Result
-    if (!user) {
-        setScanStatus("ERROR"); 
-        showNotify("Tiket TIDAK DITEMUKAN di Database!", "error");
-    } else if (user.status === "CHECKED-IN") {
-        setScanResult(user);
-        setScanStatus("USED");
-        showNotify(`Tiket a.n ${user.name} SUDAH MASUK sebelumnya!`, "error");
-    } else {
-        // Update Status to CHECKED-IN
-        const { error } = await supabase
-            .from("participants")
-            .update({ 
-                status: "CHECKED-IN", 
-                check_in_time: new Date().toISOString() 
-            })
-            .eq("id", user.id);
-        
-        if (error) {
-            showNotify("Gagal Check-in: " + error.message, "error");
-        } else {
+            // Logic: Hybrid Search (ID or UUID)
+            let user: any = null;
+
+            // Check ID (Integer)
+            if (!isNaN(Number(cleanId))) {
+                const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
+                user = data;
+            }
+
+            // Check UUID
+            if (!user) {
+                const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
+                user = data;
+            }
+
+            // Process Result
+            if (!user) {
+                setScanStatus("ERROR");
+                showNotify("Tiket TIDAK DITEMUKAN di Database!", "error");
+                return;
+            }
+
+            if (user.status === "CHECKED-IN") {
+                setScanResult(user);
+                setScanStatus("USED");
+                showNotify(`Tiket a.n ${user.name} SUDAH MASUK sebelumnya!`, "error");
+                return;
+            }
+
+            // Update Status to CHECKED-IN
+            const { error } = await supabase
+                .from("participants")
+                .update({
+                    status: "CHECKED-IN",
+                    check_in_time: new Date().toISOString(),
+                })
+                .eq("id", user.id);
+
+            if (error) {
+                showNotify("Gagal Check-in: " + error.message, "error");
+                return;
+            }
+
             setScanResult(user);
             setScanStatus("SUCCESS");
             showNotify(`✅ VALID: ${user.name} berhasil masuk.`, "success");
-            fetchAllData(); 
+            fetchAllData();
+        } finally {
+            setScanId("");
+            setLoading(false);
         }
-    }
-    
-    setScanId(""); 
-    setLoading(false);
-  };
+    };
+
+    const handleCheckIn = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await verifyTicket(scanId);
+    };
+
+    const stopCamera = () => {
+        try {
+            scannerControlsRef.current?.stop();
+        } finally {
+            scannerControlsRef.current = null;
+            lastDecodedRef.current = null;
+            setCameraOn(false);
+        }
+    };
+
+    const startCamera = async () => {
+        setCameraError(null);
+        lastDecodedRef.current = null;
+
+        const preview = videoRef.current;
+        if (!preview) {
+            setCameraError("Preview kamera belum siap.");
+            return;
+        }
+
+        try {
+            const reader = new BrowserQRCodeReader();
+
+            const controls = await reader.decodeFromVideoDevice(undefined, preview, async (result, error) => {
+                if (result) {
+                    const text = result.getText();
+                    if (!text) return;
+                    if (lastDecodedRef.current === text) return;
+                    lastDecodedRef.current = text;
+
+                    stopCamera();
+                    setScanId(text);
+                    await verifyTicket(text);
+                    return;
+                }
+
+                // Ignore "no barcode found" frame errors to keep scanning quietly
+                const errName = (error as any)?.name;
+                if (errName && errName !== "NotFoundException") {
+                    // Keep silent by default to avoid noisy UI; only surface hard camera-start errors.
+                }
+            });
+
+            scannerControlsRef.current = controls;
+            setCameraOn(true);
+        } catch (err) {
+            setCameraOn(false);
+            setCameraError(err instanceof Error ? err.message : String(err));
+        }
+    };
+
+    // Auto-stop camera if user leaves the Scanner tab
+    useEffect(() => {
+        if (activeTab !== "scanner" && cameraOn) {
+            stopCamera();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
   // --- UPLOAD SYSTEM (ROBUST) ---
   const handleUploadImage = async (file: File): Promise<string | null> => {
@@ -650,6 +726,34 @@ export default function AdminPage() {
                 
                 {/* Kolom Kiri: Input Area */}
                 <div className="space-y-6">
+                    <div className="bg-white p-8 rounded-3xl border shadow-lg border-slate-200">
+                        <h3 className="font-black text-xl mb-4 flex items-center gap-2 text-slate-800">
+                            <ScanLine className="text-cyan-600" size={24} /> SCAN VIA KAMERA
+                        </h3>
+                        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                            Aktifkan kamera untuk scan QR tiket, lalu sistem akan verifikasi otomatis.
+                        </p>
+
+                        <div className="rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+                            <video ref={videoRef} className="w-full aspect-video object-cover" muted playsInline />
+                        </div>
+
+                        {cameraError && (
+                            <div className="mt-3 text-sm font-bold text-red-600">
+                                {cameraError}
+                            </div>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={cameraOn ? stopCamera : startCamera}
+                            disabled={loading}
+                            className="w-full mt-4 bg-cyan-600 text-white py-4 rounded-xl font-bold hover:bg-cyan-700 transition-colors shadow-lg flex justify-center items-center gap-2 disabled:opacity-70"
+                        >
+                            {cameraOn ? "STOP KAMERA" : "AKTIFKAN KAMERA"}
+                        </button>
+                    </div>
+
                     <div className="bg-white p-8 rounded-3xl border shadow-lg border-slate-200">
                         <h3 className="font-black text-xl mb-4 flex items-center gap-2 text-slate-800">
                             <ShieldCheck className="text-cyan-600" size={24}/> SECURE SCANNER
