@@ -125,10 +125,10 @@ const Counter = ({ to }: { to: number }) => {
 const TechBackground = () => (
   <div className="fixed inset-0 z-[-1] overflow-hidden bg-slate-50 selection:bg-cyan-300 selection:text-cyan-900 pointer-events-none">
     {/* Grid Layer 1 */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[40px_40px]"></div>
     
     {/* Grid Layer 2 (Larger) */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:160px_160px]"></div>
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-size-[160px_160px]"></div>
 
     {/* Floating Orbs - Cyan */}
     <motion.div 
@@ -139,7 +139,7 @@ const TechBackground = () => (
         opacity: [0.3, 0.6, 0.3]
       }} 
       transition={{ duration: 25, repeat: Infinity, ease: "linear" }} 
-      className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-cyan-400/20 rounded-full blur-[120px] mix-blend-multiply" 
+      className="absolute top-[-10%] right-[-10%] w-200 h-200 bg-cyan-400/20 rounded-full blur-[120px] mix-blend-multiply" 
     />
     
     {/* Floating Orbs - Purple */}
@@ -151,7 +151,7 @@ const TechBackground = () => (
         opacity: [0.3, 0.5, 0.3]
       }} 
       transition={{ duration: 30, repeat: Infinity, ease: "linear" }} 
-      className="absolute bottom-[-10%] left-[-10%] w-[800px] h-[800px] bg-purple-400/20 rounded-full blur-[120px] mix-blend-multiply" 
+      className="absolute bottom-[-10%] left-[-10%] w-200 h-200 bg-purple-400/20 rounded-full blur-[120px] mix-blend-multiply" 
     />
 
     {/* Floating Orbs - Center Blue (Accent) */}
@@ -162,7 +162,7 @@ const TechBackground = () => (
         opacity: [0, 0.2, 0]
       }} 
       transition={{ duration: 40, repeat: Infinity, ease: "linear" }} 
-      className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[80px]" 
+      className="absolute top-[40%] left-[40%] w-96 h-96 bg-blue-500/10 rounded-full blur-[80px]" 
     />
   </div>
 );
@@ -171,13 +171,13 @@ const TechBackground = () => (
 const MaintenanceScreen = ({ mode }: { mode: string }) => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden p-6 text-center">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
+      <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/80"></div>
       
       {/* Animated Glow */}
       <motion.div 
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} 
         transition={{ duration: 4, repeat: Infinity }} 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[100px]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-cyan-500/20 rounded-full blur-[100px]"
       />
 
       <motion.div 
@@ -245,8 +245,8 @@ const CampusMarquee = ({ items }: { items: any[] }) => {
 
         <div className="w-full overflow-hidden relative group">
             {/* Fade Gradients for visual polish */}
-            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-y-0 left-0 w-32 bg-linear-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-y-0 right-0 w-32 bg-linear-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
             
             <motion.div 
                 className="flex gap-8 w-max px-6" 
@@ -256,7 +256,7 @@ const CampusMarquee = ({ items }: { items: any[] }) => {
                 {marqueeItems.map((c, i) => (
                 <div 
                   key={i} 
-                  className="flex-shrink-0 w-72 p-8 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center group/card cursor-default"
+                  className="shrink-0 w-72 p-8 bg-white border border-slate-100 rounded-4xl shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center group/card cursor-default"
                 >
                     <div className="h-24 w-full flex items-center justify-center mb-6 relative">
                         <div className="absolute inset-0 bg-slate-100 rounded-full scale-0 group-hover/card:scale-100 transition-transform duration-300 opacity-20"></div>
@@ -435,7 +435,7 @@ export default function Home() {
   // --- RENDER LOADING ---
   if (isChecking) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-slate-200 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
+        <div className="absolute inset-0 bg-grid-slate-200 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
         <Loader2 className="w-16 h-16 text-cyan-600 animate-spin relative z-10 drop-shadow-xl"/>
         <p className="mt-6 text-sm font-bold text-slate-400 tracking-[0.5em] animate-pulse relative z-10">SYSTEM INITIALIZING</p>
     </div>
@@ -453,7 +453,7 @@ export default function Home() {
         <motion.div 
             initial={{ y: -50 }} 
             animate={{ y: 0 }} 
-            className="bg-slate-900 text-white text-xs font-bold py-3 text-center sticky top-0 z-[60] shadow-xl flex items-center justify-center gap-3 tracking-wide"
+            className="bg-slate-900 text-white text-xs font-bold py-3 text-center sticky top-0 z-60 shadow-xl flex items-center justify-center gap-3 tracking-wide"
         >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -471,7 +471,7 @@ export default function Home() {
                     className="flex items-center gap-3 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
                     onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
                 >
-                    <div className="w-12 h-12 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
+                    <div className="w-12 h-12 bg-linear-to-tr from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
                         <Cpu className="w-7 h-7"/>
                     </div>
                     <span className="text-slate-900 text-3xl">EXPO<span className="text-cyan-600">SMKN1</span></span>
@@ -585,15 +585,16 @@ export default function Home() {
                       initial={{ scale: 0.8, opacity: 0 }} 
                       animate={{ scale: 1, opacity: 1 }} 
                       transition={{ duration: 1 }} 
-                      className="relative h-[650px] hidden md:block perspective-1000"
+                      className="relative hidden md:block perspective-1000" 
+                      style={{ height: "650px" }}
                   >
                       <motion.div 
                           animate={{ y: [0, -30, 0], rotateX: [0, 5, 0], rotateY: [0, 5, 0] }} 
                           transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }} 
-                          className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-700 rounded-[3rem] shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white/20"
+                          className="absolute inset-0 bg-linear-to-br from-cyan-500 to-blue-700 rounded-[3rem] shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white/20"
                       >
                           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/20 blur-[120px] rounded-full"></div>
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-white/20 blur-[120px] rounded-full"></div>
                           
                           <div className="relative z-10 text-center text-white p-10">
                               <div className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/20 mb-6 inline-block shadow-2xl">
@@ -625,9 +626,9 @@ export default function Home() {
                 <motion.div style={{ y: yVideo }} className="relative">
                     <div 
                         onClick={() => setVideoOpen(true)}
-                        className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-[600px] flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
+                        className="bg-slate-900 rounded-[3.5rem] overflow-hidden relative min-h-screen flex items-center justify-center group cursor-pointer shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
+                        <div className="absolute inset-0 bg-linear-to-r from-cyan-900 via-slate-900 to-purple-900 opacity-90 transition-opacity group-hover:opacity-95"></div>
                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-[1.5s]"></div>
                         
                         <div className="relative z-10 text-center p-10">
@@ -658,7 +659,7 @@ export default function Home() {
                         "{config.headmaster_quote}"
                     </motion.h3>
                     <div className="inline-flex items-center gap-6 bg-slate-50 px-8 py-4 rounded-full border border-slate-100 shadow-sm">
-                        <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg text-white">
+                        <div className="w-16 h-16 bg-linear-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg text-white">
                             <Mic className="w-8 h-8"/>
                         </div>
                         <div className="text-left">
@@ -679,7 +680,7 @@ export default function Home() {
                     initial="hidden" 
                     whileInView="visible" 
                     variants={staggerContainer} 
-                    className="grid grid-cols-1 md:grid-cols-4 gap-6 h-auto md:h-[600px]"
+                    className="grid grid-cols-1 md:grid-cols-4 gap-6 h-auto md:h-96"
                 >
                     <motion.div variants={fadeUpVariant} className="md:col-span-2 md:row-span-2 rounded-[2.5rem] bg-white border border-slate-200 p-10 flex flex-col justify-between shadow-lg hover:shadow-2xl transition-all group overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-50 rounded-full translate-x-1/3 -translate-y-1/3 group-hover:scale-125 transition-transform duration-700"></div>
@@ -735,9 +736,9 @@ export default function Home() {
                                 className="relative pl-12 md:pl-24 group"
                             >
                                 {/* Dot */}
-                                <div className="absolute left-[-11px] top-0 w-6 h-6 bg-white border-4 border-cyan-500 rounded-full group-hover:scale-125 group-hover:border-slate-900 transition-all z-10 shadow-lg"></div>
+                                <div className="absolute -left-2.75 top-0 w-6 h-6 bg-white border-4 border-cyan-500 rounded-full group-hover:scale-125 group-hover:border-slate-900 transition-all z-10 shadow-lg"></div>
                                 {/* Time */}
-                                <div className="absolute left-16 md:left-[-120px] top-[-5px] md:w-24 font-black text-2xl md:text-xl text-slate-300 group-hover:text-cyan-600 transition-colors text-right">
+                                <div className="absolute left-16 md:-left-30 -top-1.25 md:w-24 font-black text-2xl md:text-xl text-slate-300 group-hover:text-cyan-600 transition-colors text-right">
                                     {item.time}
                                 </div>
                                 {/* Content */}
@@ -797,7 +798,7 @@ export default function Home() {
             {/* FOOTER CTA */}
             <section className="py-32 px-6 bg-slate-900 text-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent"></div>
                 
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} className="relative z-10 max-w-4xl mx-auto">
                     <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">Siap Bergabung?</h2>
@@ -805,7 +806,7 @@ export default function Home() {
                     
                     <button 
                         onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
-                        className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
+                        className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-linear-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
                     >
                         {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftarkan Diriku Sekarang"}
                     </button>
@@ -827,7 +828,7 @@ export default function Home() {
             initial={{ y: 100, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: 100, opacity: 0 }} 
-            className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+            className="fixed inset-0 z-100 bg-slate-900/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
           >
              <div className="w-full max-w-lg bg-white p-8 md:p-10 md:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl h-[95vh] md:h-auto overflow-y-auto relative border border-white/20">
                 <div className="flex justify-between items-center mb-8">
@@ -876,11 +877,11 @@ export default function Home() {
             key="ticket" 
             initial={{ opacity: 0, scale: 0.9 }} 
             animate={{ opacity: 1, scale: 1 }} 
-            className="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
+            className="fixed inset-0 z-200 bg-slate-100 flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
           >
              <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative transform transition-transform hover:scale-[1.01] duration-500">
                 {/* Holographic Top */}
-                <div className="bg-gradient-to-br from-cyan-600 via-blue-600 to-purple-600 p-10 text-center text-white relative overflow-hidden">
+                <div className="bg-linear-to-br from-cyan-600 via-blue-600 to-purple-600 p-10 text-center text-white relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
                     <div className="relative z-10">
@@ -955,7 +956,7 @@ export default function Home() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
             onClick={() => setVideoOpen(false)}
           >
              <button 
@@ -988,7 +989,7 @@ export default function Home() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setNotification({ ...notification, show: false })}
           >
             <motion.div 
