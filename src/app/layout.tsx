@@ -12,18 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// --- BAGIAN INI YANG MENGATUR JUDUL TAB & LOGO KECIL DI BROWSER ---
+// --- BAGIAN INI YANG MENGATUR JUDUL TAB BROWSER ---
 export const metadata: Metadata = {
-  title: "Official Event SMKN 1 Kademangan",
-  description: "Expo Pendidikan Vokasi Terbesar Tahun Ini",
+  title: "EXPO SMKN 1 Kademangan 2025",
+  description: "Official Event & Ticketing System SMKN 1 Kademangan. Pameran Inovasi, Job Fair, dan Talkshow Edukasi.",
   icons: {
-    // Ganti 'logo.png' dengan nama file logomu nanti di folder public
-    icon: "/logo.png", 
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/logo.png", // Pastikan kamu punya file 'logo.png' di folder 'public'
   },
 };
-// -------------------------------------------------------------------
 
 export default function RootLayout({
   children,
@@ -31,9 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}
       >
         {children}
       </body>
