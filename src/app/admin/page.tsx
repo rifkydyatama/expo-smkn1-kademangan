@@ -169,44 +169,47 @@ export default function AdminPage() {
     }
   };
 
-  // --- 6. FITUR: GATE CHECK-IN (SCANNER LOGIC) ---
+  // --- 6. FITUR: GATE CHECK-IN (SCANNER LOGIC FIX) ---
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setScanResult(null);
     
-    const cleanId = scanId.trim(); // Ambil input mentah (bisa ID angka atau UUID)
+    // 1. Bersihkan Input (Support QR Lama "EXPO-123" & QR Baru UUID)
+    let cleanId = scanId.trim();
+    
+    // Hapus prefix "EXPO-" kalau ada (Case Insensitive)
+    if (cleanId.toUpperCase().startsWith("EXPO-")) {
+        cleanId = cleanId.replace(/EXPO-/i, "");
+    }
 
     if (!cleanId) {
         setLoading(false);
         return;
     }
 
-    // Coba cari berdasarkan ID (angka) ATAU ticket_code (UUID)
-    // Note: Kita query semua dulu baru filter di client side untuk simplifikasi logic OR
-    // Atau query spesifik jika tahu formatnya. Disini kita pakai logic OR sederhana via Supabase syntax kalau bisa,
-    // tapi biar aman kita coba cari by ID dulu, kalau gagal cari by UUID.
-    
+    // 2. LOGIC PINTAR: Cari berdasarkan ID (Angka) ATAU UUID (Kode Unik)
     let user = null;
     
-    // Cek apakah inputnya angka (ID lama)
+    // A. Cek apakah ini ID Angka (Peserta Lama / QR Lama)
     if (!isNaN(Number(cleanId))) {
          const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
          user = data;
     } 
     
-    // Jika bukan angka atau tidak ketemu, coba cari sebagai UUID
+    // B. Jika belum ketemu, cari sebagai UUID (Kode Unik Baru)
     if (!user) {
          const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
          user = data;
     }
 
+    // 3. EKSEKUSI HASIL
     if (!user) {
-        setScanStatus("ERROR"); // ID Tidak Ditemukan
-        showNotify("Tiket TIDAK VALID / Tidak Ditemukan!", "error");
+        setScanStatus("ERROR"); // Data Gak Ada
+        showNotify("TIKET TIDAK VALID! Data tidak ditemukan.", "error");
     } else if (user.status === "CHECKED-IN") {
         setScanResult(user);
-        setScanStatus("USED");  // Tiket sudah dipakai
+        setScanStatus("USED");  // Tiket Bekas
         showNotify(`Tiket a.n ${user.name} SUDAH DIGUNAKAN!`, "error");
     } else {
         // Update Status jadi Hadir
@@ -216,15 +219,15 @@ export default function AdminPage() {
                 status: "CHECKED-IN", 
                 check_in_time: new Date().toISOString() 
             })
-            .eq("id", user.id); // Update by ID primary key
+            .eq("id", user.id);
         
         setScanResult(user);
-        setScanStatus("SUCCESS"); // Berhasil masuk
+        setScanStatus("SUCCESS"); // Berhasil
         showNotify(`Check-in Berhasil: ${user.name}`, "success");
         fetchAllData(); 
     }
     
-    setScanId(""); 
+    setScanId(""); // Kosongkan input biar siap scan lagi
     setLoading(false);
   };
 

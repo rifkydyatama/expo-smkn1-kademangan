@@ -322,6 +322,9 @@ export default function Home() {
   useEffect(() => {
     const initSystem = async () => {
         try {
+            // Check Local Storage for Ticket FIRST
+            const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
+            
             // Fetch All Data in Parallel
             const [settingsRes, campusesRes, rundownRes, faqRes] = await Promise.all([
                 supabase.from("event_settings").select("*"),
@@ -330,35 +333,29 @@ export default function Home() {
                 supabase.from("event_faq").select("*").order('id')
             ]);
             
-            // Get Exact Count
-            const { count: pCount } = await supabase
+            // Get Exact Count from Database
+            const { count: participantCount } = await supabase
                 .from("participants")
-                .select("*", { count: 'exact', head: true });
-
-            if (settingsRes.data) { 
-                const conf: any = {}; 
-                settingsRes.data.forEach((i) => conf[i.key] = i.value); 
-                setConfig(conf);
-                
-                // CEK MODE SITUS (BARU)
-                if (conf.site_mode === 'MAINTENANCE' || conf.site_mode === 'COMING_SOON') {
-                    setSiteMode(conf.site_mode);
-                    setView("maintenance");
-                    setIsChecking(false);
-                    return; // Stop loading other things if maintenance
-                }
+                .select("*", { count: "exact", head: true });
+            
+            // CEK MODE SITUS (BARU)
+            if (settingsRes.data?.[0]?.site_mode === 'MAINTENANCE' || settingsRes.data?.[0]?.site_mode === 'COMING_SOON') {
+                setSiteMode(settingsRes.data[0].site_mode);
+                setView("maintenance");
+                setIsChecking(false);
+                return; // Stop loading other things if maintenance
             }
+            
             if (campusesRes.data) setCampuses(campusesRes.data);
             if (rundownRes.data) setRundown(rundownRes.data);
             if (faqRes.data) setFaqs(faqRes.data);
             
             setRealCounts({ 
-                participants: pCount || 0, 
+                participants: participantCount || 0, 
                 campuses: campusesRes.data?.length || 0 
             });
 
             // Check Local Storage for Ticket
-            const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
             if (savedTicketID) {
                 const { data } = await supabase
                     .from("participants")
@@ -900,7 +897,8 @@ export default function Home() {
 
                     {/* QR Code Area */}
                     <div className="p-4 border-2 border-dashed border-slate-300 rounded-3xl relative group cursor-pointer bg-slate-50 shadow-inner">
-                       <QRCodeSVG value={ticketData.ticket_code} size={180} />
+                      {/* Menggunakan ticket_code (UUID) jika ada, kalau tidak pakai ID biasa */}
+<QRCodeSVG value={ticketData.ticket_code || `EXPO-${ticketData.id}`} size={180} />
                        {/* Scanner Line Animation */}
                        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
                           <motion.div 
