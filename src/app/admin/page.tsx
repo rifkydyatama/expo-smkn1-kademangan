@@ -1248,7 +1248,7 @@ export default function AdminPage() {
                         {/* NOTICE FOR HIGHLIGHTS SYNC */}
                         <div className="bg-blue-50 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
                             <Info size={14} className="text-blue-600"/>
-                            <span className="text-[10px] font-bold text-blue-700">INFO: 3 Agenda teratas akan otomatis tampil di halaman depan sebagai "Agenda Utama" (Highlights).</span>
+                            <span className="text-[10px] font-bold text-blue-700">Urutan 1-3 akan otomatis menjadi konten Agenda Utama di halaman depan.</span>
                         </div>
 
                         <div className="p-5 flex-1 overflow-y-auto space-y-2 bg-slate-50/30">
@@ -1259,7 +1259,11 @@ export default function AdminPage() {
                                     <div className="flex-1">
                                         <div className="font-bold text-sm text-slate-800 flex items-center gap-2">
                                             {r.title}
-                                            {index < 3 && <span className="text-[8px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full border border-yellow-200">HIGHLIGHT</span>}
+                                            {index < 3 && (
+                                                <span className="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full border border-yellow-200">
+                                                    🌟 Tampil di Homepage
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-xs text-slate-500">{r.description}</div>
                                     </div>
