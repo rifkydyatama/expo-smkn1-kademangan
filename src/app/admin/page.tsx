@@ -137,21 +137,22 @@ export default function AdminPage() {
   const fetchAllData = async () => {
     setRefreshing(true);
     try {
-        // 1. Settings
+        // 1. Settings (Config Landing Page)
         const { data: s } = await supabase.from("event_settings").select("*");
         const conf: any = {}; 
         s?.forEach(item => conf[item.key] = item.value); 
         
+        // Default value protection jika belum ada di DB
         if (!conf.site_mode) conf.site_mode = "LIVE";
         if (!conf.status) conf.status = "OPEN";
 
         setSettings(conf);
 
-        // 2. Participants
+        // 2. Participants (Peserta) - Order by ID descending (Terbaru diatas)
         const { data: p } = await supabase.from("participants").select("*").order('id', { ascending: false });
         if(p) setParticipants(p);
 
-        // 3. Campuses
+        // 3. Campuses (Data Master)
         const { data: c } = await supabase.from("event_campuses").select("*").order('id'); 
         if(c) setCampuses(c);
         
@@ -165,7 +166,7 @@ export default function AdminPage() {
 
     } catch (error) {
         console.error("Gagal mengambil data:", error);
-        showNotify("Gagal koneksi ke database.", "error");
+        showNotify("Gagal koneksi ke database. Cek internet.", "error");
     } finally {
         setRefreshing(false);
     }
@@ -284,7 +285,8 @@ export default function AdminPage() {
 
     setLoading(false);
   };
-    // --- 8. CRUD ACTIONS ---
+
+  // --- 8. CRUD ACTIONS ---
   
   // Simpan Konfigurasi
   const saveSettings = async () => {
@@ -408,7 +410,7 @@ export default function AdminPage() {
                 MASUK DASHBOARD
             </button>
         </form>
-        <p className="text-center text-xs text-slate-300 mt-8">System v6.0 (Secure & Notif)</p>
+        <p className="text-center text-xs text-slate-300 mt-8">System v9.0 (Secure & Notif)</p>
       </div>
     </div>
   );
@@ -457,7 +459,7 @@ export default function AdminPage() {
             </div>
             <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-widest flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                CONTROL CENTER V6.0
+                CONTROL CENTER V9.0
             </div>
         </div>
         
@@ -676,9 +678,11 @@ export default function AdminPage() {
                             
                             <div className="mt-8 bg-white p-6 rounded-2xl border border-orange-200 shadow-sm text-left">
                                 <div className="text-xl font-bold text-slate-900">{scanResult.name}</div>
-                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3 mt-4">
+                                <div className="text-sm text-slate-500 mb-4">{scanResult.origin_school}</div>
+                                
+                                <div className="p-4 bg-orange-100 rounded-xl border border-orange-200 text-orange-800 text-sm font-bold flex items-center gap-3">
                                     <Calendar size={18}/>
-                                    Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
+                                    Waktu Check-in: {new Date(scanResult.check_in_time).toLocaleTimeString()}
                                 </div>
                             </div>
                         </div>
@@ -691,7 +695,7 @@ export default function AdminPage() {
                                 <XCircle size={48}/>
                             </div>
                             <h2 className="text-3xl font-black text-red-700 tracking-tight">TIKET PALSU!</h2>
-                            <p className="text-red-600 font-bold mt-2">ID/UUID tidak ditemukan di database.</p>
+                            <p className="text-red-600 font-bold mt-2">ID tiket tidak ditemukan di database.</p>
                         </div>
                     )}
                 </div>
@@ -711,6 +715,7 @@ export default function AdminPage() {
                                 <div>
                                     <div className="font-bold text-slate-900 text-sm">{p.name}</div>
                                     <div className="text-xs text-slate-500">{p.origin_school}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono mt-1">{p.ticket_code ? p.ticket_code.substring(0,8) + "..." : `#${p.id}`}</div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
@@ -767,7 +772,7 @@ export default function AdminPage() {
                                     <td className="p-5 text-center text-slate-400 font-bold">{i+1}</td>
                                     <td className="p-5">
                                         <div className="font-bold text-slate-900 text-base">{p.name}</div>
-                                        <div className="text-xs text-slate-400 mt-1">{p.phone}</div>
+                                        <div className="text-xs text-slate-400 mt-1">ID: {p.id} | {p.phone}</div>
                                     </td>
                                     <td className="p-5">
                                         <span className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full font-bold text-xs border border-cyan-100">{p.origin_school}</span>
@@ -806,9 +811,34 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
                 <div className="space-y-8">
                     {/* Hero Section Card */}
-                    {/* ... (Di bawah penutup div Hero Section Content) ... */}
-
-                    {/* --- KOTAK UPLOAD LOGO SEKOLAH (BARU) --- */}
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] -mr-10 -mt-10 z-0"></div>
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3 relative z-10">
+                            <MonitorPlay size={20} className="text-cyan-600"/> Hero Section Content
+                        </h3>
+                        <div className="space-y-5 relative z-10">
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Judul Besar (Headline)</label>
+                                <input type="text" value={settings.hero_title || ""} onChange={e => setSettings({...settings, hero_title: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-lg focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sub Judul (Description)</label>
+                                <input type="text" value={settings.hero_subtitle || ""} onChange={e => setSettings({...settings, hero_subtitle: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Event</label>
+                                    <input type="text" value={settings.event_date || ""} onChange={e => setSettings({...settings, event_date: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lokasi Event</label>
+                                    <input type="text" value={settings.event_location || ""} onChange={e => setSettings({...settings, event_location: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* UPLOAD MAIN LOGO WEBSITE (BARU) */}
                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <ImageIcon size={20} className="text-cyan-600"/> Logo Sekolah / Event
@@ -842,35 +872,6 @@ export default function AdminPage() {
                             {loading ? <RefreshCw className="animate-spin" size={16}/> : <UploadCloud size={16}/>}
                             Upload & Ganti Logo
                         </button>
-                    </div>
-                    {/* ------------------------------------------------ */}
-
-                    {/* ... (Di atas kotak Video ID Setting) ... */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] -mr-10 -mt-10 z-0"></div>
-                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3 relative z-10">
-                            <MonitorPlay size={20} className="text-cyan-600"/> Hero Section Content
-                        </h3>
-                        <div className="space-y-5 relative z-10">
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Judul Besar (Headline)</label>
-                                <input type="text" value={settings.hero_title || ""} onChange={e => setSettings({...settings, hero_title: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-lg focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sub Judul (Description)</label>
-                                <input type="text" value={settings.hero_subtitle || ""} onChange={e => setSettings({...settings, hero_subtitle: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Event</label>
-                                    <input type="text" value={settings.event_date || ""} onChange={e => setSettings({...settings, event_date: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lokasi Event</label>
-                                    <input type="text" value={settings.event_location || ""} onChange={e => setSettings({...settings, event_location: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {/* VIDEO ID SETTING */}
@@ -923,7 +924,7 @@ export default function AdminPage() {
 
                 <div className="space-y-8">
                     {/* Config System Card */}
-                    <div className="p-8 rounded-3xl border border-slate-200 shadow-sm bg-slate-50/50">
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm bg-slate-50/50">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
                         </h3>
@@ -986,7 +987,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
                 
                 {/* 1. KAMPUS MANAGER */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-212.5 lg:col-span-1">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[850px] lg:col-span-1">
                     <div className="p-6 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm sticky top-0 z-10">
                         <span className="flex items-center gap-2 text-slate-800"><School size={20} className="text-cyan-600"/> Daftar Kampus</span>
                         <span className="bg-slate-900 text-white text-xs px-3 py-1 rounded-full font-mono">{campuses.length}</span>
@@ -997,7 +998,7 @@ export default function AdminPage() {
                         {campuses.map(c => (
                             <div key={c.id} className="flex gap-4 p-4 border border-slate-200 rounded-2xl hover:border-cyan-300 hover:shadow-md transition-all group relative bg-white">
                                 <div className="w-16 h-16 rounded-xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm overflow-hidden">
-                                    <img src={c.logo_url || "https://via.placeholder.com/150?text=LOGO"} alt={c.name} className="object-contain w-full h-full" />
+                                    <img src={c.logo_url || "https://via.placeholder.com/150?text=LOGO"} alt={c.name} className="max-w-full max-h-full object-contain" />
                                 </div>
                                 <div className="flex-1 pr-6">
                                     <div className="font-bold text-slate-900 text-sm mb-1">{c.name}</div>
@@ -1052,7 +1053,7 @@ export default function AdminPage() {
                 <div className="lg:col-span-2 flex flex-col gap-8">
                     
                     {/* RUNDOWN */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px]">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><Calendar size={18} className="text-purple-600"/> Rundown Acara</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{rundown.length}</span>
@@ -1084,7 +1085,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* FAQ */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px]">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><HelpCircle size={18} className="text-orange-600"/> Tanya Jawab (FAQ)</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{faqs.length}</span>
