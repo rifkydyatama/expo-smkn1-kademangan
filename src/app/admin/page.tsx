@@ -924,7 +924,7 @@ export default function AdminPage() {
 
                 <div className="space-y-8">
                     {/* Config System Card */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm bg-slate-50/50">
+                    <div className="p-8 rounded-3xl border border-slate-200 shadow-sm bg-slate-50/50">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
                         </h3>
@@ -987,7 +987,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
                 
                 {/* 1. KAMPUS MANAGER */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[850px] lg:col-span-1">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-screen lg:col-span-1">
                     <div className="p-6 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm sticky top-0 z-10">
                         <span className="flex items-center gap-2 text-slate-800"><School size={20} className="text-cyan-600"/> Daftar Kampus</span>
                         <span className="bg-slate-900 text-white text-xs px-3 py-1 rounded-full font-mono">{campuses.length}</span>
@@ -1053,7 +1053,7 @@ export default function AdminPage() {
                 <div className="lg:col-span-2 flex flex-col gap-8">
                     
                     {/* RUNDOWN */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px]">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><Calendar size={18} className="text-purple-600"/> Rundown Acara</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{rundown.length}</span>
@@ -1085,7 +1085,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* FAQ */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px]">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><HelpCircle size={18} className="text-orange-600"/> Tanya Jawab (FAQ)</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{faqs.length}</span>
