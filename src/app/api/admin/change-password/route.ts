@@ -48,7 +48,12 @@ export async function POST(req: NextRequest) {
     await setAdminPasswordHash(newHash);
 
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Server error";
+    const safeMessage =
+      process.env.NODE_ENV !== "production" && message.startsWith("Missing ")
+        ? message
+        : "Server error";
+    return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }
