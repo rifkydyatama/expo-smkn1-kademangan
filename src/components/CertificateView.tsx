@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export type CertificateViewProps = {
   name: string;
@@ -10,17 +11,20 @@ export type CertificateViewProps = {
 
   // Dynamic certificate configuration (letterhead, address, signature, stamp, etc)
   config: {
+    event_logo_url?: string;
+    site_url?: string;
     kop_agency_1?: string;
     kop_agency_2?: string;
     school_address?: string;
-    signature_url?: string;
-    stamp_url?: string;
+    cert_number_format?: string;
+    headmaster_name?: string;
     headmaster_nip?: string;
   };
 
   // Participant data used for certificate numbering
   data: {
     id: string | number;
+    certificate_no?: string | number | null;
   };
 };
 
@@ -33,12 +37,34 @@ export function CertificateView(props: CertificateViewProps) {
     if (!rawAsString) return "";
 
     const digitsOnly = rawAsString.replace(/[^0-9]/g, "");
-    if (digitsOnly) {
-      return `CERT-${digitsOnly.padStart(6, "0")}`;
+    const paddedNo = digitsOnly ? digitsOnly.padStart(6, '0') : rawAsString;
+
+    const formatRaw = String(config?.cert_number_format ?? "").trim();
+    if (formatRaw) {
+      // Replace all occurrences of [NO]
+      return formatRaw.split('[NO]').join(paddedNo);
     }
 
+    // Backward-compatible default
+    if (digitsOnly) {
+      return `CERT-${paddedNo}`;
+    }
     return `CERT-${rawAsString}`;
-  }, [data?.id]);
+  }, [data?.id, config?.cert_number_format]);
+
+  const verifyUrl = React.useMemo(() => {
+    const rawId = String(data?.id ?? '').trim();
+    const fallback = `https://yoursite.com/verify/${encodeURIComponent(rawId)}`;
+    if (typeof window === 'undefined') return fallback;
+    try {
+      const fromConfig = String(config?.site_url ?? '').trim();
+      const fromEnv = String(process.env.NEXT_PUBLIC_SITE_URL ?? '').trim();
+      const base = (fromConfig || fromEnv || window.location.origin).replace(/\/$/, '');
+      return `${base}/verify/${encodeURIComponent(rawId)}`;
+    } catch {
+      return fallback;
+    }
+  }, [data?.id, config?.site_url]);
 
   const handlePrint = React.useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -82,142 +108,96 @@ export function CertificateView(props: CertificateViewProps) {
         }
       `}</style>
 
-      <div className="certificate-sheet mx-auto w-full max-w-[1100px] bg-white shadow-2xl print:shadow-none">
-          {/* Outer premium frame */}
-          <div className="p-3 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950">
-            <div className="p-2 bg-gradient-to-br from-amber-300 via-yellow-100 to-amber-300">
-              <div className="relative bg-white">
-                {/* A4 Landscape Ratio (297mm x 210mm) */}
-                <div className="certificate-aspect relative w-full aspect-[297/210]">
-                  {/* Corner ornaments */}
-                  <div className="absolute left-6 top-6 w-12 h-12 rounded-full border-4 border-amber-300" />
-                  <div className="absolute right-6 top-6 w-12 h-12 rounded-full border-4 border-amber-300" />
-                  <div className="absolute left-6 bottom-6 w-12 h-12 rounded-full border-4 border-amber-300" />
-                  <div className="absolute right-6 bottom-6 w-12 h-12 rounded-full border-4 border-amber-300" />
+      <div className="certificate-sheet mx-auto w-full max-w-275 bg-white shadow-2xl print:shadow-none">
+        {/* A4 Landscape Ratio (297mm x 210mm) */}
+        <div className="certificate-aspect relative w-full aspect-297/210 bg-white text-black font-serif">
+          <div className="absolute inset-0 p-10 md:p-14 flex flex-col">
+            {/* Header / Kop Surat */}
+            <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4">
+              <div className="flex items-center justify-start">
+                {config?.event_logo_url ? (
+                  <img
+                    src={config.event_logo_url}
+                    alt="Logo"
+                    className="h-20 w-20 object-contain"
+                  />
+                ) : (
+                  <div className="h-20 w-20" />
+                )}
+              </div>
 
-                  {/* Inner content */}
-                  <div className="absolute inset-0 p-10 md:p-14 flex flex-col">
-                    {/* Header */}
-                    <div className="text-center">
-                      <div className="inline-flex items-center justify-center gap-3">
-                        <div className="h-px w-16 bg-amber-300" />
-                        <div className="text-[12px] font-black tracking-[0.35em] text-blue-950 uppercase">
-                          {config?.kop_agency_1 ?? ""}
-                        </div>
-                        <div className="h-px w-16 bg-amber-300" />
-                      </div>
+              <div className="text-center leading-tight">
+                <div className="text-sm font-bold uppercase tracking-wide">
+                  {config?.kop_agency_1 ?? ''}
+                </div>
+                <div className="text-lg md:text-xl font-bold uppercase">
+                  {config?.kop_agency_2 ?? ''}
+                </div>
+                <div className="mt-1 text-xs md:text-sm">{config?.school_address ?? ''}</div>
+              </div>
 
-                      <h1 className="mt-4 text-4xl md:text-5xl font-black tracking-tight text-blue-950">
-                        CERTIFICATE OF PARTICIPATION
-                      </h1>
+              <div />
+            </div>
 
-                      <div className="mt-3 text-sm font-semibold text-slate-500">
-                        {config?.kop_agency_2 ?? ""}
-                      </div>
+            {/* Double-line separator */}
+            <div className="mt-4">
+              <div className="h-px bg-black" />
+              <div className="mt-1 h-0.5 bg-black" />
+            </div>
 
-                      <div className="mt-1 text-sm font-semibold text-slate-500">
-                        {config?.school_address ?? ""}
-                      </div>
+            {/* Title */}
+            <div className="mt-8 text-center">
+              <div className="text-3xl md:text-4xl font-bold tracking-[0.25em]">SERTIFIKAT</div>
+              <div className="mt-3 text-base md:text-lg">
+                Nomor: <span className="font-semibold">{certificateNumber}</span>
+              </div>
+            </div>
 
-                      <div className="mt-3 text-sm font-semibold text-slate-500">
-                        This certificate is proudly presented to
-                      </div>
-                    </div>
+            {/* Body */}
+            <div className="mt-10 flex-1 flex flex-col justify-center">
+              <div className="text-base md:text-lg leading-relaxed">
+                Kepala Sekolah memberikan sertifikat kepada:
+              </div>
 
-                    {/* Name (hero) */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                      <div className="text-5xl md:text-7xl font-serif font-semibold text-blue-950 tracking-tight leading-[1.05]">
-                        {name}
-                      </div>
+              <div className="mt-6 text-center">
+                <div className="text-4xl md:text-5xl font-bold">{name}</div>
+                <div className="mt-3 text-sm md:text-base">{school}</div>
+              </div>
 
-                      <div className="mt-5 max-w-3xl text-base md:text-lg font-medium text-slate-600 leading-relaxed">
-                        for participating in our event and demonstrating outstanding enthusiasm and commitment.
-                      </div>
+              <div className="mt-8 text-base md:text-lg leading-relaxed">
+                Sebagai Peserta kegiatan Expo SMKN 1 Kademangan.
+              </div>
 
-                      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                          <div className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
-                            School
-                          </div>
-                          <div className="mt-1 text-lg font-black text-slate-900">{school}</div>
-                        </div>
+              <div className="mt-6 text-sm md:text-base">
+                Kode Tiket: <span className="font-semibold">{ticketCode}</span>
+                <span className="mx-3">•</span>
+                Tanggal: <span className="font-semibold">{date}</span>
+              </div>
+            </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                          <div className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
-                            Ticket Code
-                          </div>
-                          <div className="mt-1 text-lg font-black text-slate-900 font-mono tracking-wider">
-                            {ticketCode}
-                          </div>
-                        </div>
+            {/* Footer: Digital Signature (TTE) */}
+            <div className="mt-8 flex items-end justify-between gap-8">
+              <div className="text-xs leading-relaxed">
+                <div className="font-semibold">Catatan Validasi</div>
+                <div>Scan QR untuk verifikasi keaslian dokumen.</div>
+              </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                          <div className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
-                            Date
-                          </div>
-                          <div className="mt-1 text-lg font-black text-slate-900">{date}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="pt-6 flex items-end justify-between gap-8">
-                      {/* Authenticity note */}
-                      <div className="text-left">
-                        <div className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
-                          Certificate ID
-                        </div>
-                        <div className="mt-1 text-sm font-mono font-bold text-blue-950">
-                          {certificateNumber}
-                        </div>
-                        <div className="mt-2 text-xs text-slate-400">
-                          Verified by event system
-                        </div>
-                      </div>
-
-                      {/* Signature */}
-                      <div className="text-right min-w-[280px]">
-                        <div className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
-                          Headmaster
-                        </div>
-                        <div className="mt-10 border-b-2 border-blue-950/70" />
-                        <div className="mt-2 text-xs font-semibold text-slate-500">
-                          {config?.signature_url ? (
-                            <img
-                              src={config.signature_url}
-                              alt="Signature"
-                              className="ml-auto h-12 w-auto object-contain"
-                            />
-                          ) : (
-                            <div className="ml-auto h-12 w-auto object-contain flex items-center justify-end">
-                              Signature
-                            </div>
-                          )}
-
-                          {config?.stamp_url ? (
-                            <img
-                              src={config.stamp_url}
-                              alt="Stamp"
-                              className="ml-auto mt-2 h-14 w-14 object-contain"
-                            />
-                          ) : (
-                            <div className="ml-auto mt-2 h-14 w-14 object-contain flex items-center justify-center">
-                              Stamp
-                            </div>
-                          )}
-
-                          <div className="mt-2">{config?.headmaster_nip ?? ""}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Decorative bottom line */}
-                    <div className="mt-8 h-1 w-full bg-gradient-to-r from-amber-300 via-blue-950 to-amber-300" />
+              <div className="text-right min-w-[320px]">
+                <div className="text-sm font-semibold">Kepala Sekolah</div>
+                <div className="mt-4 inline-flex flex-col items-end">
+                  <div className="border border-black p-2">
+                    <QRCodeSVG value={verifyUrl} size={96} bgColor="#ffffff" fgColor="#000000" />
                   </div>
+                  <div className="mt-2 text-[10px] leading-tight max-w-55">
+                    Dokumen ini telah ditandatangani secara elektronik (BSrE).
+                  </div>
+                  <div className="mt-3 text-sm font-bold">{config?.headmaster_name ?? ''}</div>
+                  <div className="text-sm">NIP. {config?.headmaster_nip ?? ''}</div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
       </div>
 
       {/* Actions */}

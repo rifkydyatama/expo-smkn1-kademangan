@@ -153,8 +153,6 @@ export default function AdminPage() {
   const [newCampusDesc, setNewCampusDesc] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null); // Logo Kampus
   const [mainLogoFile, setMainLogoFile] = useState<File | null>(null); // Main Logo Website
-    const [signatureFile, setSignatureFile] = useState<File | null>(null); // Tanda Tangan Sertifikat
-    const [stampFile, setStampFile] = useState<File | null>(null); // Stempel Sertifikat
   const [uploading, setUploading] = useState(false);
     const [highlightsSaving, setHighlightsSaving] = useState(false);
 
@@ -406,58 +404,6 @@ export default function AdminPage() {
          }
      }
      setLoading(false);
-  };
-
-  // --- UPDATE CERTIFICATE ASSETS (SIGNATURE & STAMP) ---
-  const handleUpdateCertAssets = async () => {
-      if (!signatureFile && !stampFile) {
-          showNotify("Pilih file tanda tangan dan/atau stempel terlebih dahulu!", "error");
-          return;
-      }
-
-      setLoading(true);
-      try {
-          let updatedCount = 0;
-
-          if (signatureFile) {
-              const signatureUrl = await handleUploadImage(signatureFile);
-              if (signatureUrl) {
-                  const { error } = await supabase
-                      .from("event_settings")
-                      .upsert({ key: "signature_url", value: signatureUrl }, { onConflict: "key" });
-
-                  if (error) {
-                      showNotify("Gagal menyimpan signature_url: " + error.message, "error");
-                  } else {
-                      updatedCount++;
-                      setSignatureFile(null);
-                  }
-              }
-          }
-
-          if (stampFile) {
-              const stampUrl = await handleUploadImage(stampFile);
-              if (stampUrl) {
-                  const { error } = await supabase
-                      .from("event_settings")
-                      .upsert({ key: "stamp_url", value: stampUrl }, { onConflict: "key" });
-
-                  if (error) {
-                      showNotify("Gagal menyimpan stamp_url: " + error.message, "error");
-                  } else {
-                      updatedCount++;
-                      setStampFile(null);
-                  }
-              }
-          }
-
-          if (updatedCount > 0) {
-              showNotify("✅ Asset E-Sertifikat berhasil diupdate!", "success");
-              fetchAllData();
-          }
-      } finally {
-          setLoading(false);
-      }
   };
 
   // --- CRUD ACTIONS (SETTINGS, CAMPUS, RUNDOWN, FAQ) ---
@@ -760,7 +706,7 @@ export default function AdminPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="ml-0 md:ml-72 flex-1 p-8 md:p-10 transition-all">
+    <main className="ml-0 md:ml-72 flex-1 p-8 md:p-10 pb-24 md:pb-10 transition-all">
         
         {/* TOP HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
@@ -1193,7 +1139,7 @@ export default function AdminPage() {
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sub Judul (Description)</label>
                                 <input type="text" value={settings.hero_subtitle || ""} onChange={e => setSettings({...settings, hero_subtitle: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Event</label>
                                     <input type="text" value={settings.event_date || ""} onChange={e => setSettings({...settings, event_date: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl mt-2 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"/>
@@ -1283,7 +1229,7 @@ export default function AdminPage() {
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <BarChart3 size={20} className="text-purple-600"/> Statistik (Animated Counter)
                         </h3>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Jml Kampus</label>
                                 <div className="text-2xl font-black text-purple-600">{campuses.length}</div>
@@ -1363,7 +1309,7 @@ export default function AdminPage() {
                         </h3>
 
                         <p className="text-xs text-slate-400 mb-6 relative z-10">
-                            Atur kop surat, alamat, data kepala sekolah, serta upload tanda tangan & stempel untuk sertifikat.
+                                Atur kop surat, alamat, dan data kepala sekolah untuk sertifikat.
                         </p>
 
                         {/* Text Settings */}
@@ -1423,81 +1369,33 @@ export default function AdminPage() {
                                     />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Upload Assets */}
-                        <div className="mt-8 relative z-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="text-sm font-bold text-slate-800">Upload Tanda Tangan</div>
-                                        {settings.signature_url && (
-                                            <a
-                                                href={settings.signature_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-xs font-bold text-cyan-700 hover:text-cyan-900"
-                                            >
-                                                Lihat
-                                            </a>
-                                        )}
-                                    </div>
-
-                                    <label className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-white transition-all ${signatureFile ? 'border-amber-500 bg-amber-50/60' : 'border-slate-300 bg-white/60'}`}>
-                                        <UploadCloud size={24} className={signatureFile ? "text-amber-600" : "text-slate-400"}/>
-                                        <div className="text-xs font-bold text-slate-600">
-                                            {signatureFile ? signatureFile.name : "Pilih file tanda tangan (PNG transparan disarankan)"}
-                                        </div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={e => setSignatureFile(e.target.files ? e.target.files[0] : null)}
-                                            className="hidden"
-                                        />
-                                    </label>
-                                </div>
-
-                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="text-sm font-bold text-slate-800">Upload Stempel</div>
-                                        {settings.stamp_url && (
-                                            <a
-                                                href={settings.stamp_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-xs font-bold text-cyan-700 hover:text-cyan-900"
-                                            >
-                                                Lihat
-                                            </a>
-                                        )}
-                                    </div>
-
-                                    <label className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-white transition-all ${stampFile ? 'border-amber-500 bg-amber-50/60' : 'border-slate-300 bg-white/60'}`}>
-                                        <UploadCloud size={24} className={stampFile ? "text-amber-600" : "text-slate-400"}/>
-                                        <div className="text-xs font-bold text-slate-600">
-                                            {stampFile ? stampFile.name : "Pilih file stempel (PNG transparan disarankan)"}
-                                        </div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={e => setStampFile(e.target.files ? e.target.files[0] : null)}
-                                            className="hidden"
-                                        />
-                                    </label>
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Format Nomor Surat</label>
+                                <input
+                                    type="text"
+                                    value={settings.cert_number_format || ""}
+                                    onChange={e => setSettings({ ...settings, cert_number_format: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                    placeholder="Contoh: 421.5/[NO]/SMK-KDM/2025"
+                                />
+                                <div className="mt-2 text-xs text-slate-400">
+                                    Gunakan <span className="font-mono font-bold text-slate-600">[NO]</span> untuk nomor otomatis urut.
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleUpdateCertAssets}
-                                disabled={loading || (!signatureFile && !stampFile)}
-                                className="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-amber-600 transition-colors disabled:opacity-50 flex justify-center gap-2 shadow-lg"
-                            >
-                                {loading ? <RefreshCw className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
-                                Upload & Simpan Asset Sertifikat
-                            </button>
-
-                            <div className="mt-3 text-xs text-slate-400">
-                                Catatan: Tombol ini hanya untuk upload gambar (tanda tangan/stempel). Untuk menyimpan teks (kop/alamat/NIP), klik "SIMPAN SEMUA KONFIGURASI".
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Site URL Verifikasi (QR)</label>
+                                <input
+                                    type="text"
+                                    value={settings.site_url || ""}
+                                    onChange={e => setSettings({ ...settings, site_url: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                    placeholder="Contoh: https://expo.smkn1.sch.id"
+                                />
+                                <div className="mt-2 text-xs text-slate-400">
+                                    Digunakan untuk link QR TTE: <span className="font-mono font-bold text-slate-600">{`/verify/{id}`}</span>.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1746,6 +1644,43 @@ export default function AdminPage() {
         )}
 
       </main>
+
+            {/* MOBILE BOTTOM NAVIGATION */}
+            <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-white border-t border-slate-200">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("dashboard")}
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                        activeTab === "dashboard" ? "text-cyan-700" : "text-slate-500"
+                    }`}
+                    aria-label="Dashboard"
+                >
+                    <LayoutDashboard size={20} />
+                    Dashboard
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("scanner")}
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                        activeTab === "scanner" ? "text-cyan-700" : "text-slate-500"
+                    }`}
+                    aria-label="Scanner"
+                >
+                    <ShieldCheck size={20} />
+                    Scanner
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("cms")}
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                        activeTab === "cms" ? "text-cyan-700" : "text-slate-500"
+                    }`}
+                    aria-label="CMS"
+                >
+                    <MonitorPlay size={20} />
+                    CMS
+                </button>
+            </nav>
     </div>
   );
 }

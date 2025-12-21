@@ -230,64 +230,57 @@ const MaintenanceScreen = ({ mode }: { mode: string }) => (
 
 // --- 5. COMPONENT: CAMPUS MARQUEE (DETAIL CARD) ---
 const CampusMarquee = memo(({ items }: { items: any[] }) => {
-  if (!items || items.length === 0) return null;
-  
-    // Duplicate items for seamless CSS marquee loop
-    const marqueeItems = [...items, ...items];
+    if (!items || items.length === 0) return null;
 
-  return (
-    <section className="py-20 bg-white/80 backdrop-blur-md border-y border-slate-200 overflow-hidden relative z-20">
-        <div className="max-w-7xl mx-auto px-6 mb-10 text-center">
-             <motion.span 
-               initial={{ opacity: 0, y: 10 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               className="text-cyan-600 font-bold tracking-[0.3em] uppercase text-xs block mb-3"
-             >
-               Official Partners & Sponsors
-             </motion.span>
-             <motion.h2 
-               initial={{ opacity: 0, y: 10 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.1 }}
-               className="text-3xl font-black text-slate-900"
-             >
-               Didukung Oleh Kampus Ternama
-             </motion.h2>
-        </div>
+    // Build a "half" track big enough to fill the viewport, then duplicate it.
+    // This keeps the CSS animation (-50%) seamless with no layout shifts.
+    const minCardsPerHalf = 10;
+    const repeats = Math.max(1, Math.ceil(minCardsPerHalf / Math.max(1, items.length)));
+    const half = Array.from({ length: repeats }).flatMap(() => items);
+    const marqueeItems = [...half, ...half];
 
-        <div className="w-full overflow-hidden relative group">
-            {/* Fade Gradients for visual polish */}
-            <div className="absolute inset-y-0 left-0 w-32 bg-linear-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute inset-y-0 right-0 w-32 bg-linear-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
-            
-                        <div className="flex gap-8 w-max px-6 expo-marquee-track">
-                {marqueeItems.map((c, i) => (
-                <div 
-                  key={i} 
-                  className="shrink-0 w-72 p-8 bg-white border border-slate-100 rounded-4xl shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center group/card cursor-default"
-                >
-                    <div className="h-24 w-full flex items-center justify-center mb-6 relative">
-                        <div className="absolute inset-0 bg-slate-100 rounded-full scale-0 group-hover/card:scale-100 transition-transform duration-300 opacity-20"></div>
-                        {c.logo_url ? (
-                           <img 
-                             src={c.logo_url} 
-                             alt={c.name} 
-                             className="max-h-full max-w-full object-contain grayscale group-hover/card:grayscale-0 transition-all duration-500 scale-90 group-hover/card:scale-110" 
-                           />
-                        ) : (
-                           <School className="w-16 h-16 text-slate-300 group-hover/card:text-cyan-500 transition-colors duration-300"/>
-                        )}
-                    </div>
-                    <h3 className="font-bold text-slate-800 text-lg group-hover/card:text-cyan-700 transition-colors">{c.name}</h3>
-                    <p className="text-xs text-slate-400 mt-2 line-clamp-2 px-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
-                        {c.description}
-                    </p>
-                </div>
-                ))}
+    return (
+        <section className="py-20 bg-white border-y border-slate-200 overflow-hidden relative z-20 md:bg-white/80 md:backdrop-blur-md">
+            <div className="max-w-7xl mx-auto px-6 mb-10 text-center">
+                <span className="text-cyan-600 font-bold tracking-[0.3em] uppercase text-xs block mb-3">
+                    Official Partners & Sponsors
+                </span>
+                <h2 className="text-3xl font-black text-slate-900">Didukung Oleh Kampus Ternama</h2>
+            </div>
+
+            <div className="w-full overflow-hidden relative group">
+                {/* Fade gradients (kept lightweight; no blur) */}
+                <div className="absolute inset-y-0 left-0 w-24 md:w-32 bg-linear-to-r from-white via-white/80 to-transparent z-10 pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-24 md:w-32 bg-linear-to-l from-white via-white/80 to-transparent z-10 pointer-events-none" />
+
+                <div className="flex gap-8 w-max px-6 expo-marquee-track transform-gpu will-change-transform group-hover:[animation-play-state:paused] group-active:[animation-play-state:paused]">
+                    {marqueeItems.map((c, i) => (
+                        <div
+                            key={`${i}-${c?.id ?? c?.name ?? "item"}`}
+                            className="shrink-0 w-72 p-8 bg-white border border-slate-100 rounded-4xl shadow-none transition-all duration-300 flex flex-col items-center justify-center text-center group/card cursor-default md:shadow-sm md:hover:shadow-xl"
+                        >
+                            <div className="h-24 w-full flex items-center justify-center mb-6 relative">
+                                <div className="absolute inset-0 bg-slate-100 rounded-full scale-0 group-hover/card:scale-100 transition-transform duration-300 opacity-20" />
+                                {c.logo_url ? (
+                                    <img
+                                        src={c.logo_url}
+                                        alt={c.name}
+                                        className="max-h-full max-w-full object-contain grayscale group-hover/card:grayscale-0 transition-all duration-500 scale-90 group-hover/card:scale-110"
+                                    />
+                                ) : (
+                                    <School className="w-16 h-16 text-slate-300 group-hover/card:text-cyan-500 transition-colors duration-300" />
+                                )}
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-lg group-hover/card:text-cyan-700 transition-colors">{c.name}</h3>
+                            <p className="text-xs text-slate-400 mt-2 line-clamp-2 px-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
+                                {c.description}
+                            </p>
                         </div>
-        </div>
-    </section>
-  );
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
 });
 
 // --- 6. MAIN PAGE COMPONENT ---
@@ -591,7 +584,9 @@ export default function Home() {
 
           const { data, error } = await supabase
               .from("participants")
-              .select("id, name, origin_school, ticket_code, status, check_in_time")
+              // Select full row so we can optionally support manual certificate numbering fields
+              // (e.g. participants.certificate_no) without breaking older schemas.
+              .select("*")
               .eq("ticket_code", normalized)
               .eq("status", "CHECKED-IN")
               .maybeSingle();
@@ -1200,7 +1195,10 @@ export default function Home() {
                                                   : new Date().toLocaleDateString("id-ID")
                                           }
                                           config={config}
-                                          data={{ id: certificateParticipant.id }}
+                                          data={{
+                                              id: certificateParticipant.id,
+                                              certificate_no: (certificateParticipant as any)?.certificate_no,
+                                          }}
                                       />
                                   </div>
                               )}
