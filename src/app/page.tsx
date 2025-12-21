@@ -345,7 +345,7 @@ const CertificateView = ({ data, config, onClose }: { data: any, config: any, on
                     <div className="text-center w-full px-32">
                         <h3 className="text-xl tracking-[0.1em] font-medium text-slate-600 uppercase mb-1">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
                         <h3 className="text-xl tracking-[0.1em] font-bold text-slate-700 uppercase mb-1">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
-                        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-widest mb-2 scale-y-110 drop-shadow-sm">SMK NEGERI 1 KADEMANGAN</h1>
+                        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-widest mb-2 scale-y-110 drop-shadow-sm">SMKN 1 KADEMANGAN</h1>
                         <p className="text-sm font-medium italic text-slate-500">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
                     </div>
                 </div>
