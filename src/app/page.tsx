@@ -304,7 +304,47 @@ const CertificateView = ({
     const verifyUrl = `${base}/verify?id=${encodeURIComponent(String(data?.id ?? ""))}&code=${encodeURIComponent(String(data?.ticket_code ?? ""))}`;
 
     return (
-        <div className="fixed inset-0 z-300 bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
+        <div className="cert-overlay fixed inset-0 z-300 bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4 landscape;
+                        margin: 0;
+                    }
+
+                    html,
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: #ffffff !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+
+                    .cert-overlay {
+                        position: static !important;
+                        inset: auto !important;
+                        background: #ffffff !important;
+                        padding: 0 !important;
+                        overflow: visible !important;
+                    }
+
+                    .cert-sheet {
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                        border-radius: 0 !important;
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                    }
+
+                    .cert-bars {
+                        width: 100vw !important;
+                    }
+                }
+            `}</style>
             <div className="w-full max-w-[210mm] flex justify-between mb-4 print:hidden">
                 <button
                     onClick={onClose}
@@ -321,10 +361,10 @@ const CertificateView = ({
             </div>
 
             {/* KERTAS A4 LANDSCAPE (297mm x 210mm) */}
-            <div className="bg-white text-black w-[297mm] h-[210mm] relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
+            <div className="cert-sheet bg-white text-black w-[297mm] h-[210mm] relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
                 {/* Hiasan Sudut Simpel (Opsional) */}
-                <div className="absolute top-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
-                <div className="absolute bottom-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
+                <div className="cert-bars absolute top-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
+                <div className="cert-bars absolute bottom-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
 
                 <div className="p-12 h-full flex flex-col relative z-10">
                     {/* 1. KOP SURAT DINAS RESMI */}
@@ -436,6 +476,8 @@ export default function Home() {
     const [certificateTicketCode, setCertificateTicketCode] = useState("");
     const [certificateParticipant, setCertificateParticipant] = useState<any>(null);
     const [certificateChecking, setCertificateChecking] = useState(false);
+    const [certificateOverlayOpen, setCertificateOverlayOpen] = useState(false);
+    const [certificateReturnView, setCertificateReturnView] = useState<"certificate" | "ticket">("certificate");
 
   // --- NEW: NOTIFICATION STATE ---
   const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
@@ -691,8 +733,51 @@ export default function Home() {
   const openCertificate = useCallback(() => {
       setCertificateTicketCode("");
       setCertificateParticipant(null);
+      setCertificateOverlayOpen(false);
+      setCertificateReturnView("certificate");
       setView("certificate");
   }, []);
+
+  const openTicket = useCallback(() => {
+      if (!ticketData) return;
+      setView("ticket");
+  }, [ticketData]);
+
+  const openMyCertificateFromTicket = useCallback(async () => {
+      if (!ticketData?.id) return;
+
+      try {
+          setCertificateChecking(true);
+          setCertificateParticipant(null);
+
+          const { data, error } = await supabase
+              .from("participants")
+              .select("*")
+              .eq("id", ticketData.id)
+              .eq("ticket_code", ticketData.ticket_code)
+              .eq("status", "CHECKED-IN")
+              .maybeSingle();
+
+          if (error) {
+              showNotify("Gagal memuat sertifikat: " + error.message, "error");
+              return;
+          }
+
+          if (!data) {
+              showNotify("Sertifikat belum tersedia. Pastikan sudah CHECKED-IN.", "error");
+              return;
+          }
+
+          setCertificateReturnView("ticket");
+          setCertificateParticipant(data);
+          setCertificateOverlayOpen(true);
+      } catch (err: any) {
+          showNotify("Gagal memuat sertifikat. Coba lagi.", "error");
+          console.error("[certificate] openMyCertificateFromTicket error", err);
+      } finally {
+          setCertificateChecking(false);
+      }
+  }, [ticketData, showNotify]);
 
   const handleCheckCertificate = useCallback(async (e: React.FormEvent) => {
       e.preventDefault();
@@ -726,7 +811,9 @@ export default function Home() {
               return;
           }
 
+          setCertificateReturnView("certificate");
           setCertificateParticipant(data);
+          setCertificateOverlayOpen(true);
       } catch (err: any) {
           showNotify("Gagal cek sertifikat. Coba lagi.", "error");
           console.error("[certificate] handleCheckCertificate error", err);
@@ -812,6 +899,17 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {ticketData && (
+                        <button
+                            type="button"
+                            onClick={openTicket}
+                            className="hidden md:flex px-6 py-4 rounded-full font-bold transition-all shadow-xl hover:-translate-y-1 items-center gap-3 text-sm border bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                        >
+                            <Ticket className="w-4 h-4" />
+                            E-Ticket Saya
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         onClick={openCertificate}
@@ -1254,7 +1352,11 @@ export default function Home() {
                           </div>
                           <button
                               type="button"
-                              onClick={() => setView("landing")}
+                              onClick={() => {
+                                  setCertificateOverlayOpen(false);
+                                  setCertificateParticipant(null);
+                                  setView("landing");
+                              }}
                               className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-black hover:bg-red-50 hover:text-red-600 transition-colors"
                               aria-label="Tutup"
                           >
@@ -1307,14 +1409,6 @@ export default function Home() {
                                       </div>
                                   </div>
                               )}
-
-                              {certificateParticipant && (
-                                  <CertificateView
-                                      data={certificateParticipant}
-                                      config={config}
-                                      onClose={() => setCertificateParticipant(null)}
-                                  />
-                              )}
                           </div>
                       </div>
                   </div>
@@ -1330,6 +1424,17 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }} 
             className="fixed inset-0 z-200 bg-slate-100 flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
           >
+             <div className="w-full max-w-sm flex justify-end mb-4">
+                <button
+                    type="button"
+                    onClick={() => setView("landing")}
+                    className="text-slate-700 hover:text-red-600 font-bold bg-white/80 px-4 py-2 rounded-lg border border-slate-200"
+                >
+                    <X className="w-4 h-4 inline-block mr-2" />
+                    Tutup
+                </button>
+             </div>
+
              <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative transform transition-transform hover:scale-[1.01] duration-500">
                 {/* Holographic Top */}
                 <div className="bg-linear-to-br from-cyan-600 via-blue-600 to-purple-600 p-10 text-center text-white relative overflow-hidden">
@@ -1392,6 +1497,16 @@ export default function Home() {
                     </p>
                 </div>
              </div>
+
+                 <button
+                     type="button"
+                     onClick={openMyCertificateFromTicket}
+                     disabled={certificateChecking}
+                     className="mt-6 px-10 py-4 rounded-full bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
+                 >
+                     <Printer className="w-5 h-5" />
+                     {certificateChecking ? "MEMUAT SERTIFIKAT..." : "UNDUH SERTIFIKAT"}
+                 </button>
              
              <button 
                 onClick={resetDevice} 
@@ -1400,6 +1515,18 @@ export default function Home() {
                  Reset Device ID (Dev Mode)
              </button>
           </motion.div>
+        )}
+
+        {certificateOverlayOpen && certificateParticipant && (
+            <CertificateView
+                data={certificateParticipant}
+                config={config}
+                onClose={() => {
+                    setCertificateOverlayOpen(false);
+                    setCertificateParticipant(null);
+                    setView(certificateReturnView);
+                }}
+            />
         )}
 
         {/* === VIDEO MODAL POPUP (FITUR BARU) === */}

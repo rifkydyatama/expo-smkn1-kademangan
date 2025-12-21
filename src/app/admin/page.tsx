@@ -138,6 +138,42 @@ export default function AdminPage() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const scannerControlsRef = useRef<IScannerControls | null>(null);
     const lastDecodedRef = useRef<string | null>(null);
+    const verifyingRef = useRef(false);
+
+    const playBeep = (variant: "success" | "error" = "success") => {
+        try {
+            const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            const freq = variant === "success" ? 880 : 220;
+            osc.type = "sine";
+            osc.frequency.value = freq;
+
+            gain.gain.value = 0.0001;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            const now = ctx.currentTime;
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+            osc.start(now);
+            osc.stop(now + 0.13);
+            osc.onended = () => {
+                try {
+                    ctx.close();
+                } catch {
+                    // ignore
+                }
+            };
+        } catch {
+            // ignore audio failures
+        }
+    };
 
   // B. Data Master Inputs
   const [newRundown, setNewRundown] = useState({ time: "", title: "", description: "" });
@@ -223,10 +259,11 @@ export default function AdminPage() {
   };
 
   // --- GATE CHECK-IN (SMART SCANNER) ---
-    const verifyTicket = async (rawId: string) => {
+    const verifyTicket = async (rawId: string): Promise<"SUCCESS" | "USED" | "ERROR" | "EMPTY"> => {
         setLoading(true);
         setScanResult(null);
         setScanStatus("IDLE");
+        verifyingRef.current = true;
 
         try {
             // Clean Input
@@ -235,7 +272,7 @@ export default function AdminPage() {
                 cleanId = cleanId.replace(/EXPO-/i, "");
             }
 
-            if (!cleanId) return;
+            if (!cleanId) return "EMPTY";
 
             // Logic: Hybrid Search (ID or UUID)
             let user: any = null;
@@ -256,14 +293,14 @@ export default function AdminPage() {
             if (!user) {
                 setScanStatus("ERROR");
                 showNotify("Tiket TIDAK DITEMUKAN di Database!", "error");
-                return;
+                return "ERROR";
             }
 
             if (user.status === "CHECKED-IN") {
                 setScanResult(user);
                 setScanStatus("USED");
                 showNotify(`Tiket a.n ${user.name} SUDAH MASUK sebelumnya!`, "error");
-                return;
+                return "USED";
             }
 
             // Update Status to CHECKED-IN
@@ -277,22 +314,26 @@ export default function AdminPage() {
 
             if (error) {
                 showNotify("Gagal Check-in: " + error.message, "error");
-                return;
+                return "ERROR";
             }
 
             setScanResult(user);
             setScanStatus("SUCCESS");
             showNotify(`✅ VALID: ${user.name} berhasil masuk.`, "success");
             fetchAllData();
+            return "SUCCESS";
         } finally {
             setScanId("");
             setLoading(false);
+            verifyingRef.current = false;
         }
     };
 
     const handleCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
-        await verifyTicket(scanId);
+        const outcome = await verifyTicket(scanId);
+        if (outcome === "SUCCESS") playBeep("success");
+        if (outcome === "USED" || outcome === "ERROR") playBeep("error");
     };
 
     const stopCamera = () => {
@@ -322,12 +363,19 @@ export default function AdminPage() {
                 if (result) {
                     const text = result.getText();
                     if (!text) return;
+                    if (verifyingRef.current) return;
                     if (lastDecodedRef.current === text) return;
                     lastDecodedRef.current = text;
 
-                    stopCamera();
                     setScanId(text);
-                    await verifyTicket(text);
+                    const outcome = await verifyTicket(text);
+                    if (outcome === "SUCCESS") playBeep("success");
+                    if (outcome === "USED" || outcome === "ERROR") playBeep("error");
+
+                    // Allow scanning a different code shortly after
+                    window.setTimeout(() => {
+                        if (lastDecodedRef.current === text) lastDecodedRef.current = null;
+                    }, 900);
                     return;
                 }
 
@@ -350,6 +398,14 @@ export default function AdminPage() {
     useEffect(() => {
         if (activeTab !== "scanner" && cameraOn) {
             stopCamera();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
+
+    // Auto-start camera when entering the Scanner tab
+    useEffect(() => {
+        if (activeTab === "scanner" && !cameraOn) {
+            void startCamera();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
@@ -588,7 +644,7 @@ export default function AdminPage() {
       </AnimatePresence>
 
       <div className="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-cyan-500 to-blue-600"></div>
         <div className="text-center mb-10">
             <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-cyan-500/20 rotate-3">
                 <Settings size={40}/>
@@ -636,7 +692,7 @@ export default function AdminPage() {
                 initial={{ opacity: 0, y: 50, x: 50 }}
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: 50, x: 50 }}
-                className={`fixed bottom-10 right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[100] border-l-8 ${
+                className={`fixed bottom-10 right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-100 border-l-8 ${
                     notification.type === 'error' ? 'bg-white border-red-500 text-red-600' : 
                     notification.type === 'success' ? 'bg-white border-green-500 text-green-600' :
                     'bg-slate-900 border-cyan-500 text-white'
@@ -768,9 +824,9 @@ export default function AdminPage() {
 
                 {/* Card 4: SITE MODE */}
                 <div className={`p-6 rounded-3xl border shadow-sm text-white flex flex-col justify-between ${
-                    settings.site_mode === "LIVE" ? "bg-gradient-to-br from-green-500 to-emerald-700 border-green-600" : 
-                    settings.site_mode === "MAINTENANCE" ? "bg-gradient-to-br from-yellow-500 to-amber-600 border-yellow-600" :
-                    "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600"
+                    settings.site_mode === "LIVE" ? "bg-linear-to-br from-green-500 to-emerald-700 border-green-600" :
+                    settings.site_mode === "MAINTENANCE" ? "bg-linear-to-br from-yellow-500 to-amber-600 border-yellow-600" :
+                    "bg-linear-to-br from-blue-500 to-indigo-600 border-blue-600"
                 }`}>
                     <div className="font-bold opacity-80 flex items-center gap-2"><Settings size={16}/> SITE MODE</div>
                     <div className="text-3xl font-black tracking-widest mt-4">{settings.site_mode}</div>
@@ -894,7 +950,7 @@ export default function AdminPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.92 }}
                                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                                className="rounded-3xl shadow-2xl border-2 border-green-700 bg-gradient-to-br from-green-600 to-emerald-700 text-white overflow-hidden"
+                                className="rounded-3xl shadow-2xl border-2 border-green-700 bg-linear-to-br from-green-600 to-emerald-700 text-white overflow-hidden"
                             >
                                 <div className="p-8">
                                     <div className="flex items-center justify-between gap-6">
@@ -938,7 +994,7 @@ export default function AdminPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.92 }}
                                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                                className="rounded-3xl shadow-2xl border-2 border-orange-700 bg-gradient-to-br from-orange-500 to-amber-600 text-white overflow-hidden"
+                                className="rounded-3xl shadow-2xl border-2 border-orange-700 bg-linear-to-br from-orange-500 to-amber-600 text-white overflow-hidden"
                             >
                                 <div className="p-8">
                                     <div className="flex items-center justify-between gap-6">
@@ -985,7 +1041,7 @@ export default function AdminPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.92 }}
                                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                                className="rounded-3xl shadow-2xl border-2 border-red-700 bg-gradient-to-br from-red-600 to-rose-700 text-white overflow-hidden"
+                                className="rounded-3xl shadow-2xl border-2 border-red-700 bg-linear-to-br from-red-600 to-rose-700 text-white overflow-hidden"
                             >
                                 <div className="p-8">
                                     <div className="flex items-center justify-between gap-6">
@@ -1015,7 +1071,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Kolom Kanan: List Riwayat Check-in */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[700px]">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-175">
                     <div className="p-6 border-b bg-slate-50 font-bold flex justify-between items-center rounded-t-3xl">
                         <span className="text-slate-800 text-lg">Riwayat Masuk</span>
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-green-200">
@@ -1251,7 +1307,7 @@ export default function AdminPage() {
 
                 <div className="space-y-8">
                     {/* Config System Card */}
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm bg-slate-50/50">
+                    <div className="bg-slate-50/50 p-8 rounded-3xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3">
                             <Settings size={20} className="text-slate-600"/> Konfigurasi Sistem
                         </h3>
@@ -1414,7 +1470,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300 slide-in-from-bottom-4">
                 
                 {/* 1. KAMPUS MANAGER */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[850px] lg:col-span-1">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-212.5 lg:col-span-1">
                     <div className="p-6 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm sticky top-0 z-10">
                         <span className="flex items-center gap-2 text-slate-800"><School size={20} className="text-cyan-600"/> Daftar Kampus</span>
                         <span className="bg-slate-900 text-white text-xs px-3 py-1 rounded-full font-mono">{campuses.length}</span>
@@ -1480,7 +1536,7 @@ export default function AdminPage() {
                 <div className="lg:col-span-2 flex flex-col gap-8">
 
                     {/* HIGHLIGHTS / INFO UTAMA */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px] relative overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100 relative overflow-hidden">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><Star size={18} className="text-yellow-500"/> Highlights / Info Utama</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{highlights.length}</span>
@@ -1565,7 +1621,7 @@ export default function AdminPage() {
                     </div>
                     
                     {/* RUNDOWN */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px] relative overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100 relative overflow-hidden">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><Calendar size={18} className="text-purple-600"/> Rundown Acara</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{rundown.length}</span>
@@ -1612,7 +1668,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* FAQ */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-[400px]">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col h-100">
                         <div className="p-5 border-b bg-slate-50/80 rounded-t-3xl font-bold flex justify-between items-center backdrop-blur-sm">
                             <span className="flex items-center gap-2 text-slate-800"><HelpCircle size={18} className="text-orange-600"/> Tanya Jawab (FAQ)</span>
                             <span className="bg-slate-900 text-white text-xs px-2.5 py-1 rounded-full font-mono">{faqs.length}</span>
