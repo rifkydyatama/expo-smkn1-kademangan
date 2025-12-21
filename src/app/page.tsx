@@ -284,148 +284,161 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
 });
 
 // --- 5.5. CERTIFICATE VIEW (DINAS STYLE - OFFICIAL) ---
-// ... (Import dan kode lainnya biarkan sama)
-
-// --- KOMPONEN SERTIFIKAT PREMIUM (ROYAL GOLD THEME) ---
 const CertificateView = ({ data, config, onClose }: { data: any, config: any, onClose: () => void }) => {
     // 1. Format Nomor Surat
     const rawFormat = config.cert_number_format || "421.5/[NO]/SMK.01/2025";
     const certNumber = rawFormat.replace('[NO]', String(data.id).padStart(3, '0'));
-    const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    const verifyUrl = (() => {
-        const rawId = String(data?.id ?? "").trim();
-        const rawCode = String(data?.ticket_code ?? "").trim();
-        const fallbackBase = "https://yoursite.com";
-        const path = rawId ? `/verify/${encodeURIComponent(rawId)}` : "/verify";
-        const query = rawCode ? `?code=${encodeURIComponent(rawCode)}` : "";
-
-        try {
-            const fromConfig = String(config?.site_url ?? "").trim();
-            const fromEnv = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
-            const fromWindow = typeof window !== "undefined" ? window.location.origin : "";
-            const base = (fromConfig || fromEnv || fromWindow || fallbackBase).replace(/\/$/, "");
-            return `${base}${path}${query}`;
-        } catch {
-            return `${fallbackBase}${path}${query}`;
-        }
-    })();
+    
+    // 2. Tanggal
+    const dateObj = new Date();
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const today = `${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+    
+    // URL Validasi
+    const validationUrl = `https://expo-smkn1-kademangan.vercel.app/verify/${data.ticket_code || data.id}`;
 
     return (
-    <div className="fixed inset-0 z-[300] bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
-        
-        {/* Tombol Aksi */}
-        <div className="w-full max-w-[297mm] flex justify-between mb-4 print:hidden">
-            <button onClick={onClose} className="text-white flex items-center gap-2 hover:text-red-400 font-bold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm"><X/> Tutup</button>
-            <button onClick={() => window.print()} className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-amber-500/20"><Printer size={18}/> Cetak Premium</button>
-        </div>
+        <div className="fixed inset-0 z-[300] bg-slate-900/95 flex flex-col items-center justify-start pt-4 pb-8 px-2 overflow-y-auto print:bg-white print:p-0 print:block print:overflow-visible print:static">
+            
+            {/* CSS Print & Responsive Logic */}
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: auto;   /* Biarkan user memilih Landscape/Portrait di dialog print */
+                        margin: 0mm;  /* Hilangkan margin default */
+                    }
+                    body {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    /* Sembunyikan elemen UI */
+                    nav, footer, button, .no-print {
+                        display: none !important;
+                    }
+                    /* Reset container sertifikat saat print */
+                    .cert-scale-wrapper {
+                        transform: none !important;
+                        height: auto !important;
+                        width: 100% !important;
+                        display: block !important;
+                        overflow: visible !important;
+                    }
+                    .cert-paper {
+                        width: 100% !important;
+                        height: auto !important;
+                        aspect-ratio: 297/210 !important;
+                        box-shadow: none !important;
+                        margin: 0 auto !important;
+                        page-break-after: always;
+                    }
+                }
+            `}</style>
 
-        {/* KERTAS A4 LANDSCAPE (297mm x 210mm) - WARNA KREM CREAM */}
-        <div className="bg-[#fffdf5] text-slate-900 w-[297mm] h-[210mm] relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif leading-none">
-            
-            {/* === DEKORASI BACKGROUND (BIAR GAK POLOS) === */}
-            
-            {/* 1. Tekstur Kertas */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-60 mix-blend-multiply"></div>
-            
-            {/* 2. Watermark Logo Sekolah (Besar di Tengah) */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04]">
-                {config.event_logo_url ? (
-                    <img src={config.event_logo_url} className="w-[150mm] h-[150mm] object-contain grayscale" />
-                ) : (
-                    <School size={500} />
-                )}
+            {/* Tombol Navigasi (Hilang saat Print) */}
+            <div className="w-full max-w-4xl flex justify-between mb-6 print:hidden z-50 px-4">
+                <button onClick={onClose} className="text-white flex items-center gap-2 hover:text-red-400 font-bold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm transition-colors text-sm md:text-base">
+                    <X size={18}/> Tutup
+                </button>
+                <button onClick={() => window.print()} className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-4 md:px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-amber-500/20 text-sm md:text-base">
+                    <Printer size={18}/> Cetak / PDF
+                </button>
             </div>
 
-            {/* 3. Bingkai Ganda (Emas & Biru) */}
-            <div className="absolute inset-4 border-[3px] border-slate-800 rounded-sm pointer-events-none z-20"></div>
-            <div className="absolute inset-2 border-[8px] border-double border-yellow-600/40 rounded pointer-events-none z-10"></div>
-
-            {/* 4. Ornamen Sudut (Segitiga Emas) */}
-            <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-yellow-500/20 to-transparent clip-path-polygon-[0_0,100%_0,0_100%]"></div>
-            <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-yellow-500/20 to-transparent clip-path-polygon-[100%_100%,100%_0,0_100%]"></div>
-
-
-            {/* === KONTEN UTAMA (LAYOUT RAPI FLEXBOX) === */}
-            <div className="relative z-30 w-full h-full flex flex-col px-16 py-12">
-                
-                {/* HEAD: KOP SURAT */}
-                <div className="flex items-center justify-center border-b-[3px] border-slate-800 pb-5 mb-8 relative">
-                    {/* Logo Kiri */}
-                    <div className="absolute left-6 top-0 w-24 h-24 flex items-center justify-center drop-shadow-md">
-                         {config.event_logo_url ? (
-                             <img src={config.event_logo_url} alt="Logo" className="max-h-full max-w-full object-contain" />
-                         ) : (
-                             <School size={60} className="text-slate-400"/>
-                         )}
-                    </div>
-
-                    <div className="text-center w-full px-32">
-                        <h3 className="text-xl tracking-[0.1em] font-medium text-slate-600 uppercase mb-1">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
-                        <h3 className="text-xl tracking-[0.1em] font-bold text-slate-700 uppercase mb-1">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
-                        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-widest mb-2 scale-y-110 drop-shadow-sm">SMKN 1 KADEMANGAN</h1>
-                        <p className="text-sm font-medium italic text-slate-500">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
-                    </div>
-                </div>
-
-                {/* BODY: ISI SERTIFIKAT */}
-                <div className="flex-1 flex flex-col items-center justify-start pt-2 text-center">
+            {/* WRAPPER SCALING (Agar Responsif di HP) */}
+            <div className="w-full flex justify-center items-start print:block print:w-full print:h-full">
+                {/* Teknik Scaling:
+                   - Mobile (Default): scale-[0.28] -> Mengecilkan sertifikat besar ke layar HP
+                   - Tablet (sm): scale-[0.45]
+                   - Laptop (lg): scale-[0.8]
+                   - Layar Besar (xl): scale-100 (Ukuran Asli)
+                   - Print: scale-100 (Ukuran Asli Kertas)
+                */}
+                <div className="cert-scale-wrapper origin-top transition-transform duration-300 transform scale-[0.34] xs:scale-[0.4] sm:scale-[0.55] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 print:transform-none print:scale-100">
                     
-                    <h2 className="text-6xl font-black text-yellow-600/90 drop-shadow-sm mb-2 font-serif tracking-widest" style={{ fontFamily: 'Times New Roman' }}>SERTIFIKAT</h2>
-                    <p className="text-lg font-bold text-slate-500 tracking-widest mb-8 font-mono">NO: {certNumber}</p>
-
-                    <p className="text-xl text-slate-700 mb-6 font-medium">Kepala SMK Negeri 1 Kademangan memberikan penghargaan kepada:</p>
-                    
-                    {/* NAMA PESERTA (Highlight) */}
-                    <div className="w-full mb-8 relative">
-                        {/* Hiasan di belakang nama */}
-                        <div className="absolute inset-x-20 top-1/2 h-1 bg-yellow-100 -z-10"></div>
+                    {/* KERTAS SERTIFIKAT (A4 LANDSCAPE: 297mm x 210mm) */}
+                    <div className="cert-paper bg-[#fffdf5] text-slate-900 w-[297mm] h-[210mm] relative shadow-2xl overflow-hidden font-serif leading-none flex flex-col mx-auto">
                         
-                        <h1 className="text-5xl font-black text-slate-900 uppercase tracking-wide scale-y-105 px-8">
-                            {data.name}
-                        </h1>
-                        <div className="w-1/2 h-[2px] bg-gradient-to-r from-transparent via-slate-400 to-transparent mx-auto mt-2"></div>
-                        <p className="text-2xl font-bold text-slate-600 mt-3">({data.origin_school})</p>
-                    </div>
-
-                    <p className="text-xl leading-relaxed max-w-5xl mx-auto text-slate-700">
-                        Atas partisipasinya sebagai <strong className="text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded border border-yellow-200 uppercase">PESERTA AKTIF</strong> dalam kegiatan<br/>
-                        <span className="font-bold text-3xl text-slate-900 block mt-3 mb-2">"{config.hero_title || 'EXPO VOKASI 2025'}"</span>
-                        yang diselenggarakan pada tanggal {config.event_date || "20 Mei 2025"}.
-                    </p>
-                </div>
-
-                {/* FOOTER: TTD & QR */}
-                <div className="flex justify-end w-full mt-4 pr-10">
-                    <div className="text-center w-[320px]">
-                        <p className="text-lg text-slate-600 mb-1">Blitar, {today}</p>
-                        <p className="text-lg font-bold text-slate-800 mb-4">Kepala Sekolah,</p>
-                        
-                        {/* QR Code Validation Area */}
-                        <div className="h-32 flex flex-col items-center justify-center relative my-1">
-                             <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                                 <QRCodeSVG 
-                                    value={verifyUrl}
-                                    size={90} 
-                                    level="M"
-                                    fgColor="#334155"
-                                 />
-                             </div>
-                             <div className="text-[9px] text-slate-400 mt-2 uppercase tracking-wider font-bold">
-                                 Digital Signature Verified
-                             </div>
+                        {/* === DEKORASI BACKGROUND === */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-60 mix-blend-multiply pointer-events-none"></div>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
+                            {config.event_logo_url ? <img src={config.event_logo_url} className="w-[150mm] h-[150mm] object-contain grayscale" /> : <School size={500} />}
                         </div>
+                        <div className="absolute inset-5 border-[3px] border-slate-800 pointer-events-none z-20"></div>
+                        <div className="absolute inset-3 border-[8px] border-double border-yellow-600/30 pointer-events-none z-10"></div>
+                        
+                        {/* ORNAMEN SUDUT */}
+                        <div className="absolute top-0 left-0 w-40 h-40 bg-[url('https://www.transparenttextures.com/patterns/gplay.png')] opacity-10 pointer-events-none"></div>
+                        <div className="absolute bottom-0 right-0 w-40 h-40 bg-[url('https://www.transparenttextures.com/patterns/gplay.png')] opacity-10 pointer-events-none rotate-180"></div>
 
-                        <p className="text-lg font-bold text-slate-900 underline underline-offset-4 mt-2 uppercase">
-                            {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
-                        </p>
-                        <p className="text-lg text-slate-600">NIP. {config.headmaster_nip || "-"}</p>
+                        {/* === KONTEN UTAMA === */}
+                        <div className="relative z-30 w-full h-full flex flex-col justify-between pt-16 pb-12 px-20">
+                            
+                            {/* 1. HEADER (KOP SURAT) */}
+                            <div className="flex items-center justify-center border-b-[3px] border-slate-800 pb-6 relative">
+                                <div className="absolute left-4 top-0 w-24 h-24 flex items-center justify-center">
+                                     {config.event_logo_url ? <img src={config.event_logo_url} alt="Logo" className="max-h-full max-w-full object-contain" /> : <School size={60} className="text-slate-400"/>}
+                                </div>
+                                <div className="text-center w-full px-28">
+                                    <h3 className="text-xl tracking-[0.1em] font-medium text-slate-600 uppercase mb-1">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
+                                    <h3 className="text-xl tracking-[0.1em] font-bold text-slate-700 uppercase mb-2">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
+                                    <h1 className="text-4xl font-black text-slate-900 uppercase tracking-widest scale-y-110">SMK NEGERI 1 KADEMANGAN</h1>
+                                    <p className="text-sm font-medium italic text-slate-500 mt-1">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
+                                </div>
+                            </div>
+
+                            {/* 2. BODY (JUDUL & NAMA) */}
+                            <div className="flex-1 flex flex-col items-center justify-center text-center -mt-4">
+                                <h2 className="text-6xl font-black text-yellow-600/90 mb-3 tracking-[0.2em] font-serif" style={{ fontFamily: 'Times New Roman' }}>SERTIFIKAT</h2>
+                                <p className="text-lg font-bold text-slate-500 tracking-widest mb-8 font-mono">NO: {certNumber}</p>
+
+                                <p className="text-xl text-slate-700 mb-6 font-medium">Kepala SMK Negeri 1 Kademangan memberikan penghargaan kepada:</p>
+                                
+                                {/* NAMA PESERTA */}
+                                <div className="w-full mb-8 relative">
+                                    <h1 className="text-5xl font-black text-slate-900 uppercase tracking-wide scale-y-105 px-8 pb-2 border-b-2 border-slate-300 inline-block min-w-[50%]">
+                                        {data.name}
+                                    </h1>
+                                    <p className="text-2xl font-bold text-slate-600 mt-3">({data.origin_school})</p>
+                                </div>
+
+                                <p className="text-xl leading-relaxed max-w-5xl mx-auto text-slate-700 px-10">
+                                    Atas partisipasinya sebagai <strong className="text-yellow-700 uppercase font-bold">PESERTA AKTIF</strong> dalam kegiatan 
+                                    <span className="font-bold text-2xl block mt-2 mb-1">"{config.hero_title || 'EXPO VOKASI 2025'}"</span>
+                                    yang diselenggarakan pada tanggal {config.event_date || "20 Mei 2025"}.
+                                </p>
+                            </div>
+
+                            {/* 3. FOOTER (TTD & QR) */}
+                            <div className="w-full flex justify-end pr-8">
+                                <div className="text-center w-[300px]">
+                                    <p className="text-lg text-slate-600 mb-1">Blitar, {today}</p>
+                                    <p className="text-lg font-bold text-slate-800 mb-6">Kepala Sekolah,</p>
+                                    
+                                    {/* Area TTD / QR */}
+                                    <div className="h-32 flex items-center justify-center relative mb-2">
+                                         <div className="bg-white p-2 rounded-xl shadow-sm border-2 border-slate-200 relative z-10">
+                                             <QRCodeSVG 
+                                                value={validationUrl} 
+                                                size={90} 
+                                                level="H" 
+                                                fgColor="#1e293b"
+                                             />
+                                         </div>
+                                         {/* Garis Dekorasi */}
+                                         <div className="absolute inset-x-4 top-1/2 h-[1px] bg-slate-300 -z-0"></div>
+                                    </div>
+
+                                    <p className="text-lg font-bold text-slate-900 underline underline-offset-4 decoration-2 uppercase mt-1">
+                                        {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
+                                    </p>
+                                    <p className="text-lg text-slate-600 mt-1">NIP. {config.headmaster_nip || "-"}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
-    </div>
     );
 };
 
