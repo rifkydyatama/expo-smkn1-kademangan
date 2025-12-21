@@ -7,10 +7,38 @@ export type CertificateViewProps = {
   school: string;
   ticketCode: string;
   date: string;
+
+  // Dynamic certificate configuration (letterhead, address, signature, stamp, etc)
+  config: {
+    kop_agency_1?: string;
+    kop_agency_2?: string;
+    school_address?: string;
+    signature_url?: string;
+    stamp_url?: string;
+    headmaster_nip?: string;
+  };
+
+  // Participant data used for certificate numbering
+  data: {
+    id: string | number;
+  };
 };
 
 export function CertificateView(props: CertificateViewProps) {
-  const { name, school, ticketCode, date } = props;
+  const { name, school, ticketCode, date, config, data } = props;
+
+  const certificateNumber = React.useMemo(() => {
+    const rawId = data?.id;
+    const rawAsString = String(rawId ?? "").trim();
+    if (!rawAsString) return "";
+
+    const digitsOnly = rawAsString.replace(/[^0-9]/g, "");
+    if (digitsOnly) {
+      return `CERT-${digitsOnly.padStart(6, "0")}`;
+    }
+
+    return `CERT-${rawAsString}`;
+  }, [data?.id]);
 
   const handlePrint = React.useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -39,54 +67,28 @@ export function CertificateView(props: CertificateViewProps) {
             print-color-adjust: exact;
           }
 
-          /*
-            Hard guarantee: hide the entire app during printing,
-            then selectively reveal only the certificate.
-          */
-          body * {
-            visibility: hidden !important;
-          }
-
-          .certificate-print-root,
-          .certificate-print-root * {
-            visibility: visible !important;
-          }
-
-          .certificate-print-root {
-            position: fixed !important;
-            inset: 0 !important;
+          .certificate-sheet {
+            max-width: none !important;
             width: 100vw !important;
             height: 100vh !important;
             margin: 0 !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-          }
-
-          .certificate-no-print {
-            display: none !important;
-          }
-
-          .certificate-sheet {
-            max-width: none !important;
-            width: 100% !important;
-            height: 100% !important;
             box-shadow: none !important;
           }
 
-          .certificate-sheet > * {
-            height: 100% !important;
+          .certificate-aspect {
+            width: 100vw !important;
+            height: 100vh !important;
           }
         }
       `}</style>
 
-      <div className="certificate-print-root">
-        <div className="certificate-sheet mx-auto w-full max-w-[1100px] bg-white shadow-2xl">
+      <div className="certificate-sheet mx-auto w-full max-w-[1100px] bg-white shadow-2xl print:shadow-none">
           {/* Outer premium frame */}
           <div className="p-3 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950">
             <div className="p-2 bg-gradient-to-br from-amber-300 via-yellow-100 to-amber-300">
               <div className="relative bg-white">
                 {/* A4 Landscape Ratio (297mm x 210mm) */}
-                <div className="relative w-full aspect-[297/210]">
+                <div className="certificate-aspect relative w-full aspect-[297/210]">
                   {/* Corner ornaments */}
                   <div className="absolute left-6 top-6 w-12 h-12 rounded-full border-4 border-amber-300" />
                   <div className="absolute right-6 top-6 w-12 h-12 rounded-full border-4 border-amber-300" />
@@ -100,7 +102,7 @@ export function CertificateView(props: CertificateViewProps) {
                       <div className="inline-flex items-center justify-center gap-3">
                         <div className="h-px w-16 bg-amber-300" />
                         <div className="text-[12px] font-black tracking-[0.35em] text-blue-950 uppercase">
-                          Event Certificate
+                          {config?.school_address ?? ""}
                         </div>
                         <div className="h-px w-16 bg-amber-300" />
                       </div>
@@ -108,6 +110,14 @@ export function CertificateView(props: CertificateViewProps) {
                       <h1 className="mt-4 text-4xl md:text-5xl font-black tracking-tight text-blue-950">
                         CERTIFICATE OF PARTICIPATION
                       </h1>
+
+                      <div className="mt-3 text-sm font-semibold text-slate-500">
+                        {config?.kop_agency_1 ?? ""}
+                      </div>
+
+                      <div className="mt-1 text-sm font-semibold text-slate-500">
+                        {config?.kop_agency_2 ?? ""}
+                      </div>
 
                       <div className="mt-3 text-sm font-semibold text-slate-500">
                         This certificate is proudly presented to
@@ -158,7 +168,7 @@ export function CertificateView(props: CertificateViewProps) {
                           Certificate ID
                         </div>
                         <div className="mt-1 text-sm font-mono font-bold text-blue-950">
-                          {ticketCode}
+                          {certificateNumber}
                         </div>
                         <div className="mt-2 text-xs text-slate-400">
                           Verified by event system
@@ -171,7 +181,27 @@ export function CertificateView(props: CertificateViewProps) {
                           Headmaster
                         </div>
                         <div className="mt-10 border-b-2 border-blue-950/70" />
-                        <div className="mt-2 text-xs font-semibold text-slate-500">Signature</div>
+                        <div className="mt-2 text-xs font-semibold text-slate-500">
+                          {config?.signature_url ? (
+                            <img
+                              src={config.signature_url}
+                              alt="Signature"
+                              className="ml-auto h-12 w-auto object-contain"
+                            />
+                          ) : null}
+
+                          {config?.stamp_url ? (
+                            <img
+                              src={config.stamp_url}
+                              alt="Stamp"
+                              className="ml-auto mt-2 h-14 w-14 object-contain"
+                            />
+                          ) : null}
+
+                          {config?.headmaster_nip ? (
+                            <div className="mt-2">{config.headmaster_nip}</div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
 
@@ -182,11 +212,10 @@ export function CertificateView(props: CertificateViewProps) {
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Actions */}
-      <div className="certificate-no-print mt-6 flex justify-center">
+      <div className="mt-6 flex justify-center print:hidden">
         <button
           type="button"
           onClick={handlePrint}

@@ -650,14 +650,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen font-sans text-slate-800 relative selection:bg-cyan-200 selection:text-cyan-900">
-      <TechBackground />
+            <div className="print:hidden">
+                <TechBackground />
+            </div>
       
       {/* 1. ANNOUNCEMENT BAR */}
       {view !== "ticket" && config.announcement && (
         <motion.div 
             initial={{ y: -50 }} 
             animate={{ y: 0 }} 
-            className="bg-slate-900 text-white text-xs font-bold py-3 text-center sticky top-0 z-60 shadow-xl flex items-center justify-center gap-3 tracking-wide"
+                        className="print:hidden bg-slate-900 text-white text-xs font-bold py-3 text-center sticky top-0 z-60 shadow-xl flex items-center justify-center gap-3 tracking-wide"
         >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -669,7 +671,7 @@ export default function Home() {
       
       {/* 2. NAVBAR */}
       {view !== "ticket" && (
-        <nav className="sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-20 md:h-24 transition-all">
+                <nav className="print:hidden sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-20 md:h-24 transition-all">
             <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center justify-between gap-4">
                 <div 
                     className="flex items-center gap-3 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
@@ -693,14 +695,14 @@ export default function Home() {
                     <button
                         type="button"
                         onClick={openCertificate}
-                        className={`px-5 py-3 rounded-full font-bold transition-all shadow-sm border text-sm flex items-center gap-2 ${
+                        className={`hidden md:flex px-6 py-4 rounded-full font-bold transition-all shadow-xl hover:-translate-y-1 items-center gap-3 text-sm border ${
                             view === "certificate"
                                 ? "bg-cyan-600 text-white border-cyan-600 shadow-cyan-500/30"
-                                : "bg-white/70 text-slate-700 border-white/40 hover:bg-white hover:text-slate-900"
+                                : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
                         }`}
                     >
                         <Ticket className="w-4 h-4" />
-                        Cek Sertifikat
+                        Cek E-Sertifikat
                     </button>
 
                     {view === "landing" && (
@@ -1114,11 +1116,11 @@ export default function Home() {
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center p-4 md:p-8 overflow-y-auto"
+            className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center p-4 md:p-8 overflow-y-auto print:static print:inset-auto print:bg-white print:p-0 print:backdrop-blur-0"
           >
               <div className="w-full max-w-6xl">
                   <div className="bg-white rounded-[2.5rem] shadow-2xl border border-white/40 overflow-hidden">
-                      <div className="p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
+                      <div className="print:hidden p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
                           <div>
                               <div className="text-xs font-black tracking-[0.35em] uppercase text-cyan-700">
                                   Verification Portal
@@ -1141,7 +1143,7 @@ export default function Home() {
                       </div>
 
                       <div className="p-8 md:p-10">
-                          <form onSubmit={handleCheckCertificate} className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+                          <form onSubmit={handleCheckCertificate} className="print:hidden grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
                               <div>
                                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
                                       Ticket Code / UUID
@@ -1175,7 +1177,7 @@ export default function Home() {
 
                           <div className="mt-10">
                               {!certificateParticipant && (
-                                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center">
+                                  <div className="print:hidden rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center">
                                       <div className="w-20 h-20 rounded-3xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto mb-6 border border-cyan-100">
                                           <Ticket className="w-10 h-10" />
                                       </div>
@@ -1187,7 +1189,7 @@ export default function Home() {
                               )}
 
                               {certificateParticipant && (
-                                  <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+                                  <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm print:rounded-none print:border-0 print:shadow-none print:p-0">
                                       <CertificateView
                                           name={certificateParticipant.name}
                                           school={certificateParticipant.origin_school}
@@ -1197,6 +1199,8 @@ export default function Home() {
                                                   ? config.event_date
                                                   : new Date().toLocaleDateString("id-ID")
                                           }
+                                          config={config}
+                                          data={{ id: certificateParticipant.id }}
                                       />
                                   </div>
                               )}
