@@ -11,7 +11,6 @@ import {
 } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase"; 
-import CertificateView from "@/components/CertificateView";
 import { 
   Loader2, 
   Sparkles, 
@@ -33,6 +32,7 @@ import {
   Lock, 
   Mic, 
   X,
+    Printer,
   Info,
   Construction,
   Timer
@@ -282,6 +282,131 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
         </section>
     );
 });
+
+// --- 5.5. CERTIFICATE VIEW (DINAS STYLE + QR TTE) ---
+const CertificateView = ({
+    data,
+    config,
+    onClose,
+}: {
+    data: any;
+    config: any;
+    onClose: () => void;
+}) => {
+    // FORMAT NOMOR SURAT OTOMATIS
+    // Mengganti [NO] dengan ID peserta (001, 002, dst)
+    const rawFormat = config.cert_number_format || "421.5/[NO]/SMK-EXPO/2025";
+    const certNo = String(data?.id ?? "").padStart(3, "0");
+    const certNumber = String(rawFormat).split("[NO]").join(certNo);
+
+    const today = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const base = String(config?.site_url || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "");
+    const verifyUrl = `${base}/verify?id=${encodeURIComponent(String(data?.id ?? ""))}&code=${encodeURIComponent(String(data?.ticket_code ?? ""))}`;
+
+    return (
+        <div className="fixed inset-0 z-300 bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
+            <div className="w-full max-w-[210mm] flex justify-between mb-4 print:hidden">
+                <button
+                    onClick={onClose}
+                    className="text-white flex items-center gap-2 hover:text-red-400 font-bold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm"
+                >
+                    <X /> Tutup
+                </button>
+                <button
+                    onClick={() => window.print()}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg"
+                >
+                    <Printer size={18} /> Cetak Resmi
+                </button>
+            </div>
+
+            {/* KERTAS A4 LANDSCAPE (297mm x 210mm) */}
+            <div className="bg-white text-black w-[297mm] h-[210mm] relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
+                {/* Hiasan Sudut Simpel (Opsional) */}
+                <div className="absolute top-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
+                <div className="absolute bottom-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
+
+                <div className="p-12 h-full flex flex-col relative z-10">
+                    {/* 1. KOP SURAT DINAS RESMI */}
+                    <div className="flex items-center justify-center border-b-[3px] border-black pb-4 mb-2 relative">
+                        {/* Garis Ganda Manual */}
+                        <div className="absolute -bottom-1.5 left-0 w-full h-px bg-black"></div>
+
+                        {/* Logo Kiri */}
+                        <div className="absolute left-0 top-2 w-24 h-24">
+                            {config.event_logo_url ? (
+                                <img src={config.event_logo_url} alt="Logo" className="w-full h-full object-contain" />
+                            ) : (
+                                <img
+                                    src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png"
+                                    className="w-full h-full object-contain grayscale"
+                                    alt="Tut Wuri"
+                                />
+                            )}
+                        </div>
+
+                        <div className="text-center w-full px-24">
+                            <h3 className="text-xl tracking-wide font-normal">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
+                            <h3 className="text-xl tracking-wide font-bold">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
+                            <h1 className="text-3xl font-black uppercase tracking-widest mt-1">
+                                {config.kop_school_name || "SMK NEGERI 1 KADEMANGAN"}
+                            </h1>
+                            <p className="text-sm mt-1">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
+                        </div>
+                    </div>
+
+                    {/* 2. JUDUL & NOMOR */}
+                    <div className="text-center mt-8 mb-8">
+                        <h2 className="text-4xl font-bold underline underline-offset-4 decoration-2">SERTIFIKAT</h2>
+                        <p className="text-lg mt-2">Nomor: {certNumber}</p>
+                    </div>
+
+                    {/* 3. ISI SERTIFIKAT */}
+                    <div className="text-center flex-1 flex flex-col items-center">
+                        <p className="text-xl leading-relaxed">
+                            Kepala SMK Negeri 1 Kademangan dengan ini memberikan penghargaan kepada:
+                        </p>
+
+                        <div className="my-6 w-full">
+                            <h1 className="text-5xl font-bold uppercase tracking-wide mb-2">{data.name}</h1>
+                            <p className="text-xl font-bold text-slate-700">({data.origin_school})</p>
+                        </div>
+
+                        <p className="text-xl leading-relaxed max-w-5xl">
+                            Atas partisipasinya sebagai <strong>PESERTA AKTIF</strong> dalam kegiatan
+                            <br />
+                            <span className="font-bold">&quot;{config.hero_title || "EXPO & GEBYAR VOKASI"}&quot;</span>
+                            <br />
+                            yang diselenggarakan pada tanggal {config.event_date || "20 Mei 2025"}.
+                        </p>
+                    </div>
+
+                    {/* 4. TANDA TANGAN ELEKTRONIK (QR CODE) */}
+                    <div className="flex justify-end mt-4 px-12">
+                        <div className="text-center w-80">
+                            <p className="text-lg mb-2">Blitar, {today}</p>
+                            <p className="text-lg font-bold mb-4">Kepala Sekolah,</p>
+
+                            {/* QR CODE BOX */}
+                            <div className="border border-slate-300 bg-slate-50 p-2 rounded-lg inline-block mb-2">
+                                <QRCodeSVG value={verifyUrl} size={100} level="H" className="mx-auto" />
+                            </div>
+
+                            <p className="text-[10px] text-slate-500 italic mb-4">
+                                Dokumen ini telah ditandatangani secara elektronik.
+                                <br />
+                                Scan QR Code untuk validasi keaslian.
+                            </p>
+
+                            <p className="text-lg font-bold underline underline-offset-2">{config.headmaster_name || "NAMA KEPALA SEKOLAH"}</p>
+                            <p className="text-lg">NIP. {config.headmaster_nip || "-"}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- 6. MAIN PAGE COMPONENT ---
 export default function Home() {
@@ -1154,7 +1279,7 @@ export default function Home() {
                               <button
                                   type="submit"
                                   disabled={certificateChecking}
-                                  className="h-[64px] px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
+                                  className="h-16 px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
                               >
                                   {certificateChecking ? (
                                       <>
@@ -1184,23 +1309,11 @@ export default function Home() {
                               )}
 
                               {certificateParticipant && (
-                                  <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm print:rounded-none print:border-0 print:shadow-none print:p-0">
-                                      <CertificateView
-                                          name={certificateParticipant.name}
-                                          school={certificateParticipant.origin_school}
-                                          ticketCode={certificateParticipant.ticket_code}
-                                          date={
-                                              typeof config.event_date === "string" && config.event_date.trim()
-                                                  ? config.event_date
-                                                  : new Date().toLocaleDateString("id-ID")
-                                          }
-                                          config={config}
-                                          data={{
-                                              id: certificateParticipant.id,
-                                              certificate_no: (certificateParticipant as any)?.certificate_no,
-                                          }}
-                                      />
-                                  </div>
+                                  <CertificateView
+                                      data={certificateParticipant}
+                                      config={config}
+                                      onClose={() => setCertificateParticipant(null)}
+                                  />
                               )}
                           </div>
                       </div>

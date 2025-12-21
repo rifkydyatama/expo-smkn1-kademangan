@@ -3,11 +3,6 @@ import Link from 'next/link';
 
 import { supabase } from '@/lib/supabase';
 
-type VerifyPageProps = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ code?: string }>;
-};
-
 export const metadata: Metadata = {
   title: 'Verifikasi Sertifikat',
 };
@@ -20,40 +15,38 @@ function buildConfigMap(rows: Array<{ key: string; value: any }> | null | undefi
   return conf;
 }
 
-function buildCertificateNumber(options: {
-  id: string | number;
-  cert_number_format?: string;
-}) {
+function buildCertificateNumber(options: { id: string | number; cert_number_format?: string }) {
   const rawAsString = String(options.id ?? '').trim();
   if (!rawAsString) return '';
 
   const digitsOnly = rawAsString.replace(/[^0-9]/g, '');
-  // Keep consistent with the landing-page certificate view (001, 002, dst)
+  // Keep consistent with the certificate view on the landing page (001, 002, dst)
   const paddedNo = digitsOnly ? digitsOnly.padStart(3, '0') : rawAsString;
 
   const formatRaw = String(options.cert_number_format ?? '').trim();
   if (formatRaw) return formatRaw.split('[NO]').join(paddedNo);
 
-  if (digitsOnly) return `CERT-${paddedNo}`;
-  return `CERT-${rawAsString}`;
+  return paddedNo;
 }
 
-export default async function VerifyCertificatePage(props: VerifyPageProps) {
-  const { id } = await props.params;
-  const { code } = await props.searchParams;
+type VerifyPageProps = {
+  searchParams: Promise<{ id?: string; code?: string }>;
+};
+
+export default async function VerifyCertificateQueryPage(props: VerifyPageProps) {
+  const { id, code } = await props.searchParams;
+
   const normalizedId = String(id ?? '').trim();
   const normalizedCode = String(code ?? '').trim();
 
   const [settingsRes, participantRes] = await Promise.all([
     supabase.from('event_settings').select('key,value'),
-    normalizedCode
-      ? supabase
-          .from('participants')
-          .select('*')
-          .eq('id', normalizedId)
-          .eq('ticket_code', normalizedCode)
-          .maybeSingle()
-      : supabase.from('participants').select('*').eq('id', normalizedId).maybeSingle(),
+    supabase
+      .from('participants')
+      .select('*')
+      .eq('id', normalizedId)
+      .eq('ticket_code', normalizedCode)
+      .maybeSingle(),
   ]);
 
   const config = buildConfigMap(settingsRes.data);
@@ -66,8 +59,8 @@ export default async function VerifyCertificatePage(props: VerifyPageProps) {
       })
     : '';
 
-  const isCheckedIn = Boolean(participant) && String(participant?.status ?? '').toUpperCase() === 'CHECKED-IN';
-  const isValid = normalizedCode ? isCheckedIn : isCheckedIn;
+  const isValid =
+    Boolean(participant) && String(participant?.status ?? '').toUpperCase() === 'CHECKED-IN' && Boolean(normalizedCode);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -95,31 +88,27 @@ export default async function VerifyCertificatePage(props: VerifyPageProps) {
             </div>
           )}
 
-          {!normalizedCode && (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              Mode verifikasi legacy: QR hanya memuat <span className="font-mono">id</span>. Untuk validasi lebih ketat,
-              gunakan QR terbaru yang memuat <span className="font-mono">id</span> + <span className="font-mono">code</span>.
+          {!normalizedId || !normalizedCode ? (
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+              Parameter verifikasi tidak lengkap. Pastikan QR berisi <span className="font-mono">id</span> dan{' '}
+              <span className="font-mono">code</span>.
             </div>
-          )}
+          ) : null}
 
           <div className="mt-8 grid grid-cols-1 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">ID</div>
-              <div className="mt-1 font-mono text-sm font-bold text-slate-900 break-all">{normalizedId}</div>
+              <div className="mt-1 font-mono text-sm font-bold text-slate-900 break-all">{normalizedId || '-'}</div>
             </div>
 
-            {normalizedCode ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">Ticket Code</div>
-                <div className="mt-1 font-mono text-sm font-bold text-slate-900 break-all">{normalizedCode}</div>
-              </div>
-            ) : null}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">Ticket Code</div>
+              <div className="mt-1 font-mono text-sm font-bold text-slate-900 break-all">{normalizedCode || '-'}</div>
+            </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">Nomor Sertifikat</div>
-              <div className="mt-1 text-sm font-bold text-slate-900 wrap-break-word">
-                {certificateNumber || '-'}
-              </div>
+              <div className="mt-1 text-sm font-bold text-slate-900 wrap-break-word">{certificateNumber || '-'}</div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -132,7 +121,7 @@ export default async function VerifyCertificatePage(props: VerifyPageProps) {
               <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">Status</div>
               <div className="mt-1 text-sm font-bold text-slate-900">{String(participant?.status ?? '-')}</div>
               <div className="mt-2 text-xs text-slate-500">
-                Dokumen dinyatakan <span className="font-semibold">valid</span> apabila status peserta adalah{' '}
+                Dokumen dinyatakan <span className="font-semibold">valid</span> apabila data cocok dan status peserta adalah{' '}
                 <span className="font-semibold">CHECKED-IN</span>.
               </div>
             </div>
@@ -145,9 +134,7 @@ export default async function VerifyCertificatePage(props: VerifyPageProps) {
             >
               Kembali ke Beranda
             </Link>
-            <div className="text-xs text-slate-500">
-              Halaman verifikasi ini dibuat untuk QR TTE.
-            </div>
+            <div className="text-xs text-slate-500">Halaman verifikasi ini dibuat untuk QR TTE.</div>
           </div>
         </div>
       </div>
