@@ -625,7 +625,7 @@ export default function AdminPage() {
   // 4. RENDER UI: LOGIN SCREEN
   // ============================================================================
   if (!session) return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-dvh bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Toast Notification for Login */}
       <AnimatePresence>
         {notification.show && (
@@ -683,7 +683,7 @@ export default function AdminPage() {
   // 5. RENDER UI: DASHBOARD AREA
   // ============================================================================
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="min-h-dvh bg-slate-50 flex font-sans text-slate-800">
       
       {/* GLOBAL NOTIFICATION TOAST */}
       <AnimatePresence>
@@ -692,7 +692,7 @@ export default function AdminPage() {
                 initial={{ opacity: 0, y: 50, x: 50 }}
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: 50, x: 50 }}
-                className={`fixed bottom-10 right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-100 border-l-8 ${
+                className={`fixed bottom-24 right-4 md:bottom-10 md:right-10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-100 border-l-8 ${
                     notification.type === 'error' ? 'bg-white border-red-500 text-red-600' : 
                     notification.type === 'success' ? 'bg-white border-green-500 text-green-600' :
                     'bg-slate-900 border-cyan-500 text-white'
@@ -762,12 +762,12 @@ export default function AdminPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-    <main className="ml-0 md:ml-72 flex-1 p-8 md:p-10 pb-24 md:pb-10 transition-all">
+    <main className="ml-0 md:ml-72 flex-1 p-4 sm:p-6 md:p-10 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10 transition-all">
         
         {/* TOP HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
-                <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{activeTab.replace(/_/g, " ")}</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight">{activeTab.replace(/_/g, " ")}</h2>
                 <p className="text-slate-500 text-sm font-medium mt-1 flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${
                         settings.site_mode === 'LIVE' ? 'bg-green-500' :

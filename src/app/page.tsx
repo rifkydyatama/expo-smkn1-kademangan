@@ -181,7 +181,7 @@ const TechBackground = () => (
 
 // --- 4. COMPONENT: MAINTENANCE / COMING SOON SCREEN (BARU) ---
 const MaintenanceScreen = ({ mode }: { mode: string }) => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden p-6 text-center">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden p-6 text-center">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/80"></div>
       
@@ -304,12 +304,12 @@ const CertificateView = ({
     const verifyUrl = `${base}/verify?id=${encodeURIComponent(String(data?.id ?? ""))}&code=${encodeURIComponent(String(data?.ticket_code ?? ""))}`;
 
     return (
-        <div className="cert-overlay fixed inset-0 z-300 bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
+        <div className="cert-overlay fixed inset-0 z-300 bg-slate-900/95 flex flex-col items-center justify-center px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] overflow-y-auto print:bg-white print:p-0">
             <style jsx global>{`
                 @media print {
                     @page {
                         size: A4 landscape;
-                        margin: 0;
+                        margin: 8mm;
                     }
 
                     html,
@@ -321,31 +321,44 @@ const CertificateView = ({
                         print-color-adjust: exact;
                     }
 
+                    body {
+                        zoom: 0.96;
+                    }
+
+                    body * {
+                        visibility: hidden !important;
+                    }
+
+                    .cert-overlay,
+                    .cert-overlay * {
+                        visibility: visible !important;
+                    }
+
                     .cert-overlay {
-                        position: static !important;
-                        inset: auto !important;
+                        position: absolute !important;
+                        inset: 0 !important;
                         background: #ffffff !important;
                         padding: 0 !important;
                         overflow: visible !important;
                     }
 
                     .cert-sheet {
-                        width: 100vw !important;
-                        height: 100vh !important;
+                        width: 100% !important;
+                        height: 100% !important;
                         margin: 0 !important;
                         box-shadow: none !important;
                         border-radius: 0 !important;
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
+                        position: relative !important;
+                        transform: none !important;
+                        transform-origin: top left !important;
                     }
 
                     .cert-bars {
-                        width: 100vw !important;
+                        width: 100% !important;
                     }
                 }
             `}</style>
-            <div className="w-full max-w-[210mm] flex justify-between mb-4 print:hidden">
+            <div className="w-full max-w-[297mm] flex justify-between mb-4 print:hidden">
                 <button
                     onClick={onClose}
                     className="text-white flex items-center gap-2 hover:text-red-400 font-bold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm"
@@ -361,19 +374,19 @@ const CertificateView = ({
             </div>
 
             {/* KERTAS A4 LANDSCAPE (297mm x 210mm) */}
-            <div className="cert-sheet bg-white text-black w-[297mm] h-[210mm] relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
+            <div className="cert-sheet bg-white text-black w-full max-w-[297mm] aspect-297/210 relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
                 {/* Hiasan Sudut Simpel (Opsional) */}
-                <div className="cert-bars absolute top-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
-                <div className="cert-bars absolute bottom-0 left-0 w-[297mm] h-1.25 bg-black print:block"></div>
+                <div className="cert-bars absolute top-0 left-0 w-full h-1.25 bg-black print:block"></div>
+                <div className="cert-bars absolute bottom-0 left-0 w-full h-1.25 bg-black print:block"></div>
 
-                <div className="p-12 h-full flex flex-col relative z-10">
+                <div className="p-6 sm:p-10 lg:p-12 h-full flex flex-col relative z-10">
                     {/* 1. KOP SURAT DINAS RESMI */}
                     <div className="flex items-center justify-center border-b-[3px] border-black pb-4 mb-2 relative">
                         {/* Garis Ganda Manual */}
                         <div className="absolute -bottom-1.5 left-0 w-full h-px bg-black"></div>
 
                         {/* Logo Kiri */}
-                        <div className="absolute left-0 top-2 w-24 h-24">
+                        <div className="absolute left-0 top-2 w-14 h-14 sm:w-24 sm:h-24">
                             {config.event_logo_url ? (
                                 <img src={config.event_logo_url} alt="Logo" className="w-full h-full object-contain" />
                             ) : (
@@ -385,7 +398,7 @@ const CertificateView = ({
                             )}
                         </div>
 
-                        <div className="text-center w-full px-24">
+                        <div className="text-center w-full px-16 sm:px-24">
                             <h3 className="text-xl tracking-wide font-normal">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
                             <h3 className="text-xl tracking-wide font-bold">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
                             <h1 className="text-3xl font-black uppercase tracking-widest mt-1">
@@ -397,8 +410,8 @@ const CertificateView = ({
 
                     {/* 2. JUDUL & NOMOR */}
                     <div className="text-center mt-8 mb-8">
-                        <h2 className="text-4xl font-bold underline underline-offset-4 decoration-2">SERTIFIKAT</h2>
-                        <p className="text-lg mt-2">Nomor: {certNumber}</p>
+                        <h2 className="text-3xl sm:text-4xl font-bold underline underline-offset-4 decoration-2">SERTIFIKAT</h2>
+                        <p className="text-base sm:text-lg mt-2">Nomor: {certNumber}</p>
                     </div>
 
                     {/* 3. ISI SERTIFIKAT */}
@@ -408,8 +421,8 @@ const CertificateView = ({
                         </p>
 
                         <div className="my-6 w-full">
-                            <h1 className="text-5xl font-bold uppercase tracking-wide mb-2">{data.name}</h1>
-                            <p className="text-xl font-bold text-slate-700">({data.origin_school})</p>
+                            <h1 className="text-3xl sm:text-5xl font-bold uppercase tracking-wide mb-2">{data.name}</h1>
+                            <p className="text-base sm:text-xl font-bold text-slate-700">({data.origin_school})</p>
                         </div>
 
                         <p className="text-xl leading-relaxed max-w-5xl">
@@ -493,7 +506,7 @@ export default function Home() {
 
   // Parallax Hooks
   const { scrollY } = useScroll();
-  const yHero = useTransform(scrollY, [0, 500], [0, 200]);
+    const yHero = useTransform(scrollY, [0, 500], [0, 200]);
   const opacityHero = useTransform(scrollY, [0, 300], [1, 0]);
   const yVideo = useTransform(scrollY, [500, 1000], [50, -50]);
 
@@ -824,7 +837,7 @@ export default function Home() {
 
   // --- RENDER LOADING ---
   if (isChecking) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-200 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
         <Loader2 className="w-16 h-16 text-cyan-600 animate-spin relative z-10 drop-shadow-xl"/>
         <p className="mt-6 text-sm font-bold text-slate-400 tracking-[0.5em] animate-pulse relative z-10">SYSTEM INITIALIZING</p>
@@ -833,7 +846,7 @@ export default function Home() {
 
     if (initError) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden p-6 text-center">
+            <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden p-6 text-center">
                 <div className="absolute inset-0 bg-grid-slate-200 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
                 <div className="relative z-10 max-w-xl">
                     <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-red-100">
@@ -856,7 +869,7 @@ export default function Home() {
   if (view === "maintenance") return <MaintenanceScreen mode={siteMode} />;
 
   return (
-    <main className="min-h-screen font-sans text-slate-800 relative selection:bg-cyan-200 selection:text-cyan-900">
+    <main className="min-h-dvh font-sans text-slate-800 relative selection:bg-cyan-200 selection:text-cyan-900">
             <div className="print:hidden">
                 <TechBackground />
             </div>
@@ -878,7 +891,7 @@ export default function Home() {
       
       {/* 2. NAVBAR */}
       {view !== "ticket" && (
-                <nav className="print:hidden sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-20 md:h-24 transition-all">
+                <nav className="print:hidden sticky top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 h-20 md:h-24 transition-all pt-[env(safe-area-inset-top)]">
             <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center justify-between gap-4">
                 <div 
                     className="flex items-center gap-3 font-black text-2xl tracking-tighter cursor-pointer group select-none" 
@@ -910,6 +923,18 @@ export default function Home() {
                         </button>
                     )}
 
+                    {ticketData && (
+                        <button
+                            type="button"
+                            onClick={openTicket}
+                            className="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50"
+                            aria-label="E-Ticket Saya"
+                            title="E-Ticket Saya"
+                        >
+                            <Ticket className="w-5 h-5" />
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         onClick={openCertificate}
@@ -921,6 +946,20 @@ export default function Home() {
                     >
                         <Ticket className="w-4 h-4" />
                         Cek E-Sertifikat
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={openCertificate}
+                        className={`md:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border shadow-sm ${
+                            view === "certificate"
+                                ? "bg-cyan-600 text-white border-cyan-600"
+                                : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                        }`}
+                        aria-label="Cek E-Sertifikat"
+                        title="Cek E-Sertifikat"
+                    >
+                        <Award className="w-5 h-5" />
                     </button>
 
                     {view === "landing" && (
@@ -936,6 +975,26 @@ export default function Home() {
                             {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}
                         </button>
                     )}
+
+                    {view === "landing" && (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                config.status === "CLOSED"
+                                    ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup!", "error")
+                                    : setView("register")
+                            }
+                            className={`md:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border shadow-sm ${
+                                config.status === "CLOSED"
+                                    ? "bg-slate-200 text-slate-400 border-slate-200"
+                                    : "bg-slate-900 text-white border-slate-900 hover:bg-cyan-600 hover:border-cyan-600"
+                            }`}
+                            aria-label={config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}
+                            title={config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftar Sekarang"}
+                        >
+                            {config.status === "CLOSED" ? <Lock className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                        </button>
+                    )}
                 </div>
             </div>
         </nav>
@@ -949,7 +1008,7 @@ export default function Home() {
             
             {/* HERO SECTION */}
                         <section className="relative pt-8 md:pt-12 pb-20 md:pb-32 px-4 md:px-6 max-w-7xl mx-auto min-h-[80vh] md:min-h-[90vh] flex flex-col justify-center overflow-visible">
-              <div className="grid md:grid-cols-2 gap-16 items-center">
+              <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
                   
                   {/* HERO TEXT */}
                   <motion.div style={{ y: yHero, opacity: opacityHero }} className="relative z-10">
@@ -957,7 +1016,7 @@ export default function Home() {
                           variants={fadeUpVariant}
                           initial="hidden"
                           animate="visible"
-                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/60 border border-white rounded-full text-cyan-700 text-xs font-bold mb-8 backdrop-blur-sm shadow-sm ring-1 ring-cyan-100"
+                          className="inline-flex flex-wrap items-center gap-2 px-5 py-2.5 bg-white/60 border border-white rounded-full text-cyan-700 text-xs font-bold mb-8 backdrop-blur-sm shadow-sm ring-1 ring-cyan-100 max-w-full"
                       >
                           <span className="flex h-2 w-2 relative">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
@@ -970,7 +1029,7 @@ export default function Home() {
                           initial={{ opacity: 0, y: 30 }} 
                           animate={{ opacity: 1, y: 0 }} 
                           transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }} 
-                          className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-black text-slate-900 leading-[0.92] md:leading-[0.9] mb-6 md:mb-8 tracking-tighter"
+                          className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-black text-slate-900 leading-[0.98] sm:leading-[0.92] md:leading-[0.9] mb-6 md:mb-8 tracking-tighter wrap-break-word"
                       >
                           {config.hero_title}
                       </motion.h1>
@@ -992,13 +1051,13 @@ export default function Home() {
                       >
                           <button 
                               onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
-                              className={`px-8 md:px-10 py-4 md:py-5 rounded-2xl font-bold text-base sm:text-lg shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
+                              className={`w-full sm:w-auto px-8 md:px-10 py-4 md:py-5 rounded-2xl font-bold text-base sm:text-lg shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-3 ${config.status === "CLOSED" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-slate-900 text-white group"}`}
                           >
                               {config.status === "CLOSED" ? "Pendaftaran Ditutup" : config.hero_btn_text}
                               {config.status !== "CLOSED" && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>}
                           </button>
                           
-                          <div className="flex items-center gap-3 px-6 md:px-8 py-4 md:py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm">
+                          <div className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 md:px-8 py-4 md:py-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm">
                                <Calendar className="w-5 h-5 text-cyan-500"/> 
                                {config.event_date}
                           </div>
@@ -1007,19 +1066,19 @@ export default function Home() {
                       {/* STATS COUNTER REAL-TIME */}
                       <div className="mt-12 md:mt-20 flex flex-wrap gap-8 md:gap-12 border-t border-slate-200 pt-8 md:pt-10">
                           <div>
-                              <div className="text-5xl font-black text-slate-900 flex items-baseline">
-                                  <Counter to={realCounts.campuses}/><span className="text-cyan-600 text-3xl ml-1">+</span>
+                              <div className="text-4xl sm:text-5xl font-black text-slate-900 flex items-baseline">
+                                  <Counter to={realCounts.campuses}/><span className="text-cyan-600 text-2xl sm:text-3xl ml-1">+</span>
                               </div>
                               <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Kampus</div>
                           </div>
                           <div>
-                              <div className="text-5xl font-black text-slate-900 flex items-baseline">
-                                  <Counter to={realCounts.participants}/><span className="text-cyan-600 text-3xl ml-1">+</span>
+                              <div className="text-4xl sm:text-5xl font-black text-slate-900 flex items-baseline">
+                                  <Counter to={realCounts.participants}/><span className="text-cyan-600 text-2xl sm:text-3xl ml-1">+</span>
                               </div>
                               <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Peserta</div>
                           </div>
                           <div>
-                              <div className="text-5xl font-black text-slate-900 flex items-baseline">
+                              <div className="text-4xl sm:text-5xl font-black text-slate-900 flex items-baseline">
                                   <Counter to={parseInt(config.stats_speakers || 0)}/>
                               </div>
                               <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Speakers</div>
@@ -1081,12 +1140,12 @@ export default function Home() {
                             style={youtubeThumbnailUrl ? { backgroundImage: `url(${youtubeThumbnailUrl})` } : undefined}
                         ></div>
                         
-                        <div className="relative z-10 text-center p-10">
+                        <div className="relative z-10 text-center p-6 sm:p-10">
                             <motion.div 
                                 whileHover={{ scale: 1.2, rotate: 90 }} 
-                                className="w-32 h-32 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 mb-8 mx-auto group-hover:bg-cyan-500/80 group-hover:border-cyan-400 transition-all duration-300"
+                                className="w-24 h-24 sm:w-32 sm:h-32 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 mb-6 sm:mb-8 mx-auto group-hover:bg-cyan-500/80 group-hover:border-cyan-400 transition-all duration-300"
                             >
-                                <PlayCircle className="w-14 h-14 text-white ml-2 fill-white/20" />
+                                <PlayCircle className="w-10 h-10 sm:w-14 sm:h-14 text-white ml-2 fill-white/20" />
                             </motion.div>
                             <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-4 md:mb-6 tracking-tighter">{config.youtube_video_title || 'AFTERMOVIE'}</h2>
                             <p className="text-slate-300 text-lg sm:text-xl md:text-2xl font-light">Saksikan keseruan tahun lalu & rasakan atmosfernya.</p>
@@ -1252,17 +1311,17 @@ export default function Home() {
             </section>
 
             {/* FOOTER CTA */}
-            <section className="py-32 px-6 bg-slate-900 text-center relative overflow-hidden">
+            <section className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 bg-slate-900 text-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent"></div>
                 
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} className="relative z-10 max-w-4xl mx-auto">
-                    <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">Siap Bergabung?</h2>
-                    <p className="text-slate-400 mb-12 text-2xl font-light">Kuota tiket terbatas. Amankan posisimu di era baru pendidikan vokasi sekarang juga.</p>
+                    <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-6 sm:mb-8 tracking-tight">Siap Bergabung?</h2>
+                    <p className="text-slate-400 mb-10 sm:mb-12 text-base sm:text-xl md:text-2xl font-light">Kuota tiket terbatas. Amankan posisimu di era baru pendidikan vokasi sekarang juga.</p>
                     
                     <button 
                         onClick={() => config.status === "CLOSED" ? showNotify("Mohon maaf, pendaftaran saat ini sedang ditutup.", "error") : setView("register")} 
-                        className={`px-16 py-6 rounded-full font-bold text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-linear-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
+                        className={`w-full sm:w-auto px-10 sm:px-16 py-4 sm:py-6 rounded-full font-bold text-base sm:text-xl shadow-2xl transition-all transform hover:scale-105 ${config.status === "CLOSED" ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-linear-to-r from-cyan-500 to-blue-600 text-white ring-4 ring-cyan-500/30 hover:ring-cyan-500/50"}`}
                     >
                         {config.status === "CLOSED" ? "Pendaftaran Ditutup" : "Daftarkan Diriku Sekarang"}
                     </button>
@@ -1284,9 +1343,9 @@ export default function Home() {
             initial={{ y: 100, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: 100, opacity: 0 }} 
-            className="fixed inset-0 z-100 bg-slate-900/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+                        className="fixed inset-0 z-100 bg-slate-900/80 backdrop-blur-md flex items-end md:items-center justify-center px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:p-6"
           >
-             <div className="w-full max-w-lg bg-white p-8 md:p-10 md:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl h-[95vh] md:h-auto overflow-y-auto relative border border-white/20">
+             <div className="w-full max-w-lg bg-white p-6 sm:p-8 md:p-10 md:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl h-[95dvh] md:h-auto overflow-y-auto relative border border-white/20">
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900">Registrasi</h2>
@@ -1295,7 +1354,7 @@ export default function Home() {
                     <button onClick={() => setView("landing")} className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors text-xl">✕</button>
                 </div>
                 
-                <div className="bg-blue-50 p-6 rounded-2xl mb-8 flex gap-4 items-start border border-blue-100 shadow-inner">
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-2xl mb-8 flex gap-4 items-start border border-blue-100 shadow-inner">
                     <div className="bg-blue-100 p-2 rounded-lg text-blue-600"><Lock size={20}/></div>
                     <p className="text-sm text-blue-800 font-medium leading-relaxed">
                         <strong className="block mb-1 text-blue-900">Device Lock System</strong>
@@ -1334,11 +1393,11 @@ export default function Home() {
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center p-4 md:p-8 overflow-y-auto print:static print:inset-auto print:bg-white print:p-0 print:backdrop-blur-0"
+                        className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-8 overflow-y-auto print:static print:inset-auto print:bg-white print:p-0 print:backdrop-blur-0"
           >
               <div className="w-full max-w-6xl">
                   <div className="bg-white rounded-[2.5rem] shadow-2xl border border-white/40 overflow-hidden">
-                      <div className="print:hidden p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
+                                            <div className="print:hidden p-6 sm:p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
                           <div>
                               <div className="text-xs font-black tracking-[0.35em] uppercase text-cyan-700">
                                   Verification Portal
@@ -1364,7 +1423,7 @@ export default function Home() {
                           </button>
                       </div>
 
-                      <div className="p-8 md:p-10">
+                      <div className="p-6 sm:p-8 md:p-10">
                           <form onSubmit={handleCheckCertificate} className="print:hidden grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
                               <div>
                                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -1374,14 +1433,14 @@ export default function Home() {
                                       value={certificateTicketCode}
                                       onChange={(e) => setCertificateTicketCode(e.target.value)}
                                       placeholder="Contoh: 550e8400-e29b-41d4-a716-446655440000"
-                                      className="w-full px-6 py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 font-black text-slate-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all placeholder:font-semibold placeholder:text-slate-300"
+                                      className="w-full px-5 sm:px-6 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 font-black text-slate-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all placeholder:font-semibold placeholder:text-slate-300"
                                   />
                               </div>
 
                               <button
                                   type="submit"
                                   disabled={certificateChecking}
-                                  className="h-16 px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
+                                  className="h-14 sm:h-16 px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
                               >
                                   {certificateChecking ? (
                                       <>
@@ -1399,7 +1458,7 @@ export default function Home() {
 
                           <div className="mt-10">
                               {!certificateParticipant && (
-                                  <div className="print:hidden rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center">
+                                  <div className="print:hidden rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-10 text-center">
                                       <div className="w-20 h-20 rounded-3xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto mb-6 border border-cyan-100">
                                           <Ticket className="w-10 h-10" />
                                       </div>
@@ -1422,7 +1481,7 @@ export default function Home() {
             key="ticket" 
             initial={{ opacity: 0, scale: 0.9 }} 
             animate={{ opacity: 1, scale: 1 }} 
-            className="fixed inset-0 z-200 bg-slate-100 flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
+                                                className="fixed inset-0 z-200 bg-slate-100 flex flex-col items-center justify-center px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] print:hidden"
           >
              <div className="w-full max-w-sm flex justify-end mb-4">
                 <button
@@ -1435,9 +1494,9 @@ export default function Home() {
                 </button>
              </div>
 
-             <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative transform transition-transform hover:scale-[1.01] duration-500">
+                 <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative transform transition-transform hover:scale-[1.01] duration-500">
                 {/* Holographic Top */}
-                <div className="bg-linear-to-br from-cyan-600 via-blue-600 to-purple-600 p-10 text-center text-white relative overflow-hidden">
+                     <div className="bg-linear-to-br from-cyan-600 via-blue-600 to-purple-600 p-6 sm:p-10 text-center text-white relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
                     <div className="relative z-10">
@@ -1449,13 +1508,13 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="p-10 flex flex-col items-center gap-8 relative bg-white">
+                <div className="p-6 sm:p-10 flex flex-col items-center gap-8 relative bg-white">
                     {/* Hiasan Bolong Tiket */}
                     <div className="absolute -top-4 -left-4 w-8 h-8 bg-slate-100 rounded-full shadow-[inset_-2px_-2px_5px_rgba(0,0,0,0.1)]"></div>
                     <div className="absolute -top-4 -right-4 w-8 h-8 bg-slate-100 rounded-full shadow-[inset_2px_-2px_5px_rgba(0,0,0,0.1)]"></div>
 
                     {/* QR Code Area */}
-                    <div className="p-4 border-2 border-dashed border-slate-300 rounded-3xl relative group cursor-pointer bg-slate-50 shadow-inner">
+                                        <div className="scale-[0.92] sm:scale-100 origin-top p-4 border-2 border-dashed border-slate-300 rounded-3xl relative group cursor-pointer bg-slate-50 shadow-inner">
                       {/* Menggunakan ticket_code (UUID) jika ada, kalau tidak pakai ID biasa */}
 <QRCodeSVG value={ticketData.ticket_code || `EXPO-${ticketData.id}`} size={180} />
                        {/* Scanner Line Animation */}
@@ -1502,7 +1561,7 @@ export default function Home() {
                      type="button"
                      onClick={openMyCertificateFromTicket}
                      disabled={certificateChecking}
-                     className="mt-6 px-10 py-4 rounded-full bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
+                     className="mt-6 w-full max-w-sm px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
                  >
                      <Printer className="w-5 h-5" />
                      {certificateChecking ? "MEMUAT SERTIFIKAT..." : "UNDUH SERTIFIKAT"}
@@ -1535,12 +1594,12 @@ export default function Home() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]"
             onClick={() => setVideoOpen(false)}
           >
              <button 
                onClick={() => setVideoOpen(false)} 
-               className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors bg-white/10 p-2 rounded-full hover:bg-white/20"
+                             className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))] text-white/50 hover:text-white transition-colors bg-white/10 p-2 rounded-full hover:bg-white/20"
              >
                 <X size={32}/>
              </button>
