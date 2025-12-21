@@ -1,9 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
-// Masukkan URL Supabase kamu (yang https://...supabase.co)
-const supabaseUrl = 'https://mlywpfcalretnnklvhlb.supabase.co'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// PASTE ANON KEY (yang depannya eyJ...) DI BAWAH INI:
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1seXdwZmNhbHJldG5ua2x2aGxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxMTU3MjQsImV4cCI6MjA4MTY5MTcyNH0.ri9BNsStqy0I3Yb55wGTxhlx_77e9YR7MHOS2OaHtiE'
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+  );
+}
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

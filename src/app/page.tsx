@@ -32,7 +32,6 @@ import {
   Lock, 
   Mic, 
   X,
-    Printer,
   Info,
   Construction,
   Timer
@@ -283,171 +282,11 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
     );
 });
 
-// --- KOMPONEN SERTIFIKAT PREMIUM (FIX LAYOUT & MARGIN) ---
-const CertificateView = ({ data, config, onClose }: { data: any, config: any, onClose: () => void }) => {
-    // 1. Format Nomor Surat
-    const rawFormat = config.cert_number_format || "421.5/[NO]/SMK.01/2025";
-    const certNumber = rawFormat.replace('[NO]', String(data.id).padStart(3, '0'));
-    
-    // 2. Tanggal
-    const dateObj = new Date();
-    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    const today = `${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
-    
-    // URL Validasi
-    const validationUrl = `https://expo-smkn1-kademangan.vercel.app/verify/${data.ticket_code || data.id}`;
-
-    return (
-        <div className="fixed inset-0 z-[300] bg-slate-900/95 flex flex-col items-center justify-start pt-4 pb-8 px-2 overflow-y-auto print:bg-white print:p-0 print:block print:overflow-visible print:static">
-            
-            {/* CSS Print Logic (Strict A4 Landscape) */}
-            <style jsx global>{`
-                @media print {
-                    @page {
-                        size: A4 landscape; /* Memaksa ukuran A4 Landscape */
-                        margin: 0;          /* Nol-kan margin browser */
-                    }
-                    html, body {
-                        width: 297mm;
-                        height: 210mm;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        background: #ffffff !important;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    nav, footer, button, .no-print {
-                        display: none !important;
-                    }
-                    .cert-scale-wrapper {
-                        transform: none !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        display: block !important;
-                        margin: 0 !important;
-                    }
-                    .cert-paper {
-                        width: 297mm !important;
-                        height: 210mm !important;
-                        box-shadow: none !important;
-                        margin: 0 !important;
-                        page-break-after: always;
-                    }
-                }
-            `}</style>
-
-            {/* Tombol Navigasi (Hilang saat Print) */}
-            <div className="w-full max-w-4xl flex justify-between mb-6 print:hidden z-50 px-4">
-                <button onClick={onClose} className="text-white flex items-center gap-2 hover:text-red-400 font-bold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm transition-colors text-sm md:text-base">
-                    <X size={18}/> Tutup
-                </button>
-                <button onClick={() => window.print()} className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-4 md:px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-amber-500/20 text-sm md:text-base">
-                    <Printer size={18}/> Cetak (A4)
-                </button>
-            </div>
-
-            {/* WRAPPER SCALING (Agar Responsif di Layar HP tapi Presisi saat Print) */}
-            <div className="w-full flex justify-center items-start print:block print:w-full print:h-full">
-                <div className="cert-scale-wrapper origin-top transition-transform duration-300 transform scale-[0.34] xs:scale-[0.4] sm:scale-[0.55] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 print:transform-none print:scale-100">
-                    
-                    {/* KERTAS SERTIFIKAT (A4 LANDSCAPE: 297mm x 210mm) */}
-                    <div className="cert-paper bg-[#fffdf5] text-slate-900 w-[297mm] h-[210mm] relative shadow-2xl overflow-hidden font-serif leading-none flex flex-col mx-auto border border-slate-200">
-                        
-                        {/* === DEKORASI BACKGROUND === */}
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-60 mix-blend-multiply pointer-events-none"></div>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
-                            {config.event_logo_url ? <img src={config.event_logo_url} className="w-[150mm] h-[150mm] object-contain grayscale" /> : <School size={500} />}
-                        </div>
-                        {/* Border Dekoratif (Batik/Line) - Diberi jarak 15mm (Safe Area) */}
-                        <div className="absolute inset-[15mm] border-[3px] border-slate-900 pointer-events-none z-20"></div>
-                        <div className="absolute inset-[18mm] border-[1px] border-slate-500 pointer-events-none z-10"></div>
-                        
-                        {/* ORNAMEN SUDUT */}
-                        <div className="absolute top-[15mm] left-[15mm] w-20 h-20 border-t-[5px] border-l-[5px] border-yellow-600 z-30"></div>
-                        <div className="absolute top-[15mm] right-[15mm] w-20 h-20 border-t-[5px] border-r-[5px] border-yellow-600 z-30"></div>
-                        <div className="absolute bottom-[15mm] left-[15mm] w-20 h-20 border-b-[5px] border-l-[5px] border-yellow-600 z-30"></div>
-                        <div className="absolute bottom-[15mm] right-[15mm] w-20 h-20 border-b-[5px] border-r-[5px] border-yellow-600 z-30"></div>
-
-                        {/* === KONTEN UTAMA (MARGIN AMAN 25MM) === */}
-                        {/* Padding p-[25mm] menjamin teks aman dari potongan printer */}
-                        <div className="relative z-30 w-full h-full flex flex-col justify-between p-[25mm]">
-                            
-                            {/* 1. HEADER (KOP SURAT) */}
-                            <div className="flex items-center justify-center border-b-[3px] border-double border-slate-900 pb-3 mb-2 relative">
-                                <div className="absolute left-0 top-0 w-24 h-24 flex items-center justify-center">
-                                     {config.event_logo_url ? <img src={config.event_logo_url} alt="Logo" className="max-h-full max-w-full object-contain" /> : <School size={60} className="text-slate-400"/>}
-                                </div>
-                                <div className="text-center w-full px-24">
-                                    <h3 className="text-xl tracking-[0.1em] font-medium text-slate-700 uppercase mb-1 font-serif">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
-                                    <h3 className="text-xl tracking-[0.1em] font-bold text-black uppercase mb-1 font-serif">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
-                                    <h1 className="text-4xl font-black text-black uppercase tracking-widest scale-y-110 font-serif">SMK NEGERI 1 KADEMANGAN</h1>
-                                    <p className="text-sm font-medium italic text-black font-serif mt-1">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
-                                </div>
-                                <div className="absolute right-0 top-0 w-24 h-24 flex items-center justify-center opacity-90">
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" alt="Tut Wuri" className="h-20 w-auto" />
-                                </div>
-                            </div>
-
-                            {/* 2. BODY (JUDUL & NAMA) */}
-                            <div className="flex-1 flex flex-col items-center justify-center text-center -mt-2">
-                                <h2 className="text-5xl font-bold text-black underline decoration-[3px] underline-offset-8 mb-2 tracking-[0.2em]" style={{ fontFamily: 'Times New Roman, serif' }}>SERTIFIKAT</h2>
-                                <p className="text-lg font-bold text-slate-700 tracking-widest mb-6 font-mono">NOMOR: {certNumber}</p>
-
-                                <p className="text-xl text-black mb-4 font-serif">Kepala SMK Negeri 1 Kademangan memberikan penghargaan kepada:</p>
-                                
-                                <div className="w-full mb-6 relative">
-                                    <h1 className="text-5xl font-bold text-black uppercase tracking-wide px-8 pb-2 border-b-2 border-slate-400 inline-block min-w-[60%] font-serif">
-                                        {data.name}
-                                    </h1>
-                                    <p className="text-2xl font-bold text-slate-800 mt-2 font-serif">({data.origin_school})</p>
-                                </div>
-
-                                <p className="text-lg leading-relaxed max-w-4xl mx-auto text-black font-serif px-6">
-                                    Atas partisipasinya sebagai <strong className="text-yellow-700 uppercase font-black">PESERTA AKTIF</strong> dalam kegiatan 
-                                    <span className="font-bold text-2xl block mt-1 mb-1">"{config.hero_title || 'EXPO VOKASI 2025'}"</span>
-                                    yang diselenggarakan pada tanggal {config.event_date || "20 Mei 2025"}.
-                                </p>
-                            </div>
-
-                            {/* 3. FOOTER (TTD & QR) */}
-                            <div className="w-full flex justify-end pr-4">
-                                <div className="text-center w-[320px] relative">
-                                    <p className="text-lg text-black mb-1 font-serif">Blitar, {today}</p>
-                                    <p className="text-lg font-bold text-black mb-3 font-serif">Kepala Sekolah,</p>
-                                    
-                                    {/* QR Code Area */}
-                                    <div className="h-28 flex items-center justify-center relative mb-1">
-                                         <div className="bg-white p-1 border border-black inline-block">
-                                             <QRCodeSVG 
-                                                value={validationUrl} 
-                                                size={90} 
-                                                level="H" 
-                                                fgColor="#000000"
-                                             />
-                                         </div>
-                                         <div className="absolute -right-5 top-1/2 -translate-y-1/2 -rotate-90 origin-center">
-                                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">DIGITAL SIGNATURE</span>
-                                         </div>
-                                    </div>
-
-                                    <p className="text-lg font-bold text-black underline underline-offset-4 decoration-2 uppercase mt-1 font-serif">
-                                        {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
-                                    </p>
-                                    <p className="text-lg text-black font-serif mt-1">NIP. {config.headmaster_nip || "-"}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
+ 
 // --- 6. MAIN PAGE COMPONENT ---
 export default function Home() {
   const [isChecking, setIsChecking] = useState(true);
-    const [view, setView] = useState<"landing" | "register" | "ticket" | "certificate" | "maintenance">("landing");
+        const [view, setView] = useState<"landing" | "register" | "ticket" | "maintenance">("landing");
   const [siteMode, setSiteMode] = useState("LIVE"); // Default LIVE
     const [initError, setInitError] = useState<string | null>(null);
   
@@ -467,13 +306,6 @@ export default function Home() {
   const [ticketData, setTicketData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-    // --- CERTIFICATE CHECK STATE (VERBOSE) ---
-    const [certificateTicketCode, setCertificateTicketCode] = useState("");
-    const [certificateParticipant, setCertificateParticipant] = useState<any>(null);
-    const [certificateChecking, setCertificateChecking] = useState(false);
-    const [certificateOverlayOpen, setCertificateOverlayOpen] = useState(false);
-    const [certificateReturnView, setCertificateReturnView] = useState<"certificate" | "ticket">("certificate");
 
   // --- NEW: NOTIFICATION STATE ---
   const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
@@ -725,98 +557,10 @@ export default function Home() {
       } 
   }
 
-  // --- CERTIFICATE CHECK LOGIC ---
-  const openCertificate = useCallback(() => {
-      setCertificateTicketCode("");
-      setCertificateParticipant(null);
-      setCertificateOverlayOpen(false);
-      setCertificateReturnView("certificate");
-      setView("certificate");
-  }, []);
-
   const openTicket = useCallback(() => {
       if (!ticketData) return;
       setView("ticket");
   }, [ticketData]);
-
-  const openMyCertificateFromTicket = useCallback(async () => {
-      if (!ticketData?.id) return;
-
-      try {
-          setCertificateChecking(true);
-          setCertificateParticipant(null);
-
-          const { data, error } = await supabase
-              .from("participants")
-              .select("*")
-              .eq("id", ticketData.id)
-              .eq("ticket_code", ticketData.ticket_code)
-              .eq("status", "CHECKED-IN")
-              .maybeSingle();
-
-          if (error) {
-              showNotify("Gagal memuat sertifikat: " + error.message, "error");
-              return;
-          }
-
-          if (!data) {
-              showNotify("Sertifikat belum tersedia. Pastikan sudah CHECKED-IN.", "error");
-              return;
-          }
-
-          setCertificateReturnView("ticket");
-          setCertificateParticipant(data);
-          setCertificateOverlayOpen(true);
-      } catch (err: any) {
-          showNotify("Gagal memuat sertifikat. Coba lagi.", "error");
-          console.error("[certificate] openMyCertificateFromTicket error", err);
-      } finally {
-          setCertificateChecking(false);
-      }
-  }, [ticketData, showNotify]);
-
-  const handleCheckCertificate = useCallback(async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      const normalized = String(certificateTicketCode ?? "").trim();
-      if (!normalized) {
-          showNotify("Masukkan Ticket Code / UUID terlebih dahulu.", "error");
-          return;
-      }
-
-      try {
-          setCertificateChecking(true);
-          setCertificateParticipant(null);
-
-          const { data, error } = await supabase
-              .from("participants")
-              // Select full row so we can optionally support manual certificate numbering fields
-              // (e.g. participants.certificate_no) without breaking older schemas.
-              .select("*")
-              .eq("ticket_code", normalized)
-              .eq("status", "CHECKED-IN")
-              .maybeSingle();
-
-          if (error) {
-              showNotify("Gagal cek sertifikat: " + error.message, "error");
-              return;
-          }
-
-          if (!data) {
-              showNotify("Sertifikat tidak valid atau peserta belum check-in.", "error");
-              return;
-          }
-
-          setCertificateReturnView("certificate");
-          setCertificateParticipant(data);
-          setCertificateOverlayOpen(true);
-      } catch (err: any) {
-          showNotify("Gagal cek sertifikat. Coba lagi.", "error");
-          console.error("[certificate] handleCheckCertificate error", err);
-      } finally {
-          setCertificateChecking(false);
-      }
-  }, [certificateTicketCode, showNotify]);
 
   // --- RENDER LOADING ---
   if (isChecking) return (
@@ -917,33 +661,6 @@ export default function Home() {
                             <Ticket className="w-5 h-5" />
                         </button>
                     )}
-
-                    <button
-                        type="button"
-                        onClick={openCertificate}
-                        className={`hidden md:flex px-6 py-4 rounded-full font-bold transition-all shadow-xl hover:-translate-y-1 items-center gap-3 text-sm border ${
-                            view === "certificate"
-                                ? "bg-cyan-600 text-white border-cyan-600 shadow-cyan-500/30"
-                                : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
-                        }`}
-                    >
-                        <Ticket className="w-4 h-4" />
-                        Cek E-Sertifikat
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={openCertificate}
-                        className={`md:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border shadow-sm ${
-                            view === "certificate"
-                                ? "bg-cyan-600 text-white border-cyan-600"
-                                : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
-                        }`}
-                        aria-label="Cek E-Sertifikat"
-                        title="Cek E-Sertifikat"
-                    >
-                        <Award className="w-5 h-5" />
-                    </button>
 
                     {view === "landing" && (
                         <button 
@@ -1369,95 +1086,6 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* === VIEW 2.5: CERTIFICATE CHECK (NEW FEATURE) === */}
-        {view === "certificate" && (
-          <motion.div
-            key="certificate"
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-                        className="fixed inset-0 z-120 bg-slate-900/70 backdrop-blur-md flex items-start md:items-center justify-center px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-8 overflow-y-auto print:static print:inset-auto print:bg-white print:p-0 print:backdrop-blur-0"
-          >
-              <div className="w-full max-w-6xl">
-                  <div className="bg-white rounded-[2.5rem] shadow-2xl border border-white/40 overflow-hidden">
-                                            <div className="print:hidden p-6 sm:p-8 md:p-10 border-b border-slate-100 flex items-start md:items-center justify-between gap-6">
-                          <div>
-                              <div className="text-xs font-black tracking-[0.35em] uppercase text-cyan-700">
-                                  Verification Portal
-                              </div>
-                              <h2 className="mt-2 text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                                  Cek Sertifikat
-                              </h2>
-                              <p className="mt-2 text-slate-500 font-medium">
-                                  Masukkan Ticket Code / UUID. Sertifikat hanya tersedia setelah peserta berhasil check-in.
-                              </p>
-                          </div>
-                          <button
-                              type="button"
-                              onClick={() => {
-                                  setCertificateOverlayOpen(false);
-                                  setCertificateParticipant(null);
-                                  setView("landing");
-                              }}
-                              className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-black hover:bg-red-50 hover:text-red-600 transition-colors"
-                              aria-label="Tutup"
-                          >
-                              ✕
-                          </button>
-                      </div>
-
-                      <div className="p-6 sm:p-8 md:p-10">
-                          <form onSubmit={handleCheckCertificate} className="print:hidden grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
-                              <div>
-                                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                                      Ticket Code / UUID
-                                  </label>
-                                  <input
-                                      value={certificateTicketCode}
-                                      onChange={(e) => setCertificateTicketCode(e.target.value)}
-                                      placeholder="Contoh: 550e8400-e29b-41d4-a716-446655440000"
-                                      className="w-full px-5 sm:px-6 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 font-black text-slate-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all placeholder:font-semibold placeholder:text-slate-300"
-                                  />
-                              </div>
-
-                              <button
-                                  type="submit"
-                                  disabled={certificateChecking}
-                                  className="h-14 sm:h-16 px-8 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
-                              >
-                                  {certificateChecking ? (
-                                      <>
-                                          <Loader2 className="animate-spin" />
-                                          MEMERIKSA...
-                                      </>
-                                  ) : (
-                                      <>
-                                          <CheckCircle className="w-5 h-5" />
-                                          CEK SERTIFIKAT
-                                      </>
-                                  )}
-                              </button>
-                          </form>
-
-                          <div className="mt-10">
-                              {!certificateParticipant && (
-                                  <div className="print:hidden rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-10 text-center">
-                                      <div className="w-20 h-20 rounded-3xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto mb-6 border border-cyan-100">
-                                          <Ticket className="w-10 h-10" />
-                                      </div>
-                                      <div className="text-xl font-black text-slate-900">Masukkan kode untuk melihat sertifikat</div>
-                                      <div className="mt-2 text-slate-500 font-medium">
-                                          Pastikan peserta sudah scan masuk (CHECKED-IN).
-                                      </div>
-                                  </div>
-                              )}
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </motion.div>
-        )}
-
         {/* === VIEW 3: TICKET (DIGITAL PASS - ULTRA DETAIL) === */}
         {view === "ticket" && ticketData && (
           <motion.div 
@@ -1540,29 +1168,7 @@ export default function Home() {
                 </div>
              </div>
 
-                 <button
-                     type="button"
-                     onClick={openMyCertificateFromTicket}
-                     disabled={certificateChecking}
-                     className="mt-6 w-full max-w-sm px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-xl hover:bg-cyan-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-3"
-                 >
-                     <Printer className="w-5 h-5" />
-                     {certificateChecking ? "MEMUAT SERTIFIKAT..." : "UNDUH SERTIFIKAT"}
-                 </button>
-            
           </motion.div>
-        )}
-
-        {certificateOverlayOpen && certificateParticipant && (
-            <CertificateView
-                data={certificateParticipant}
-                config={config}
-                onClose={() => {
-                    setCertificateOverlayOpen(false);
-                    setCertificateParticipant(null);
-                    setView(certificateReturnView);
-                }}
-            />
         )}
 
         {/* === VIDEO MODAL POPUP (FITUR BARU) === */}

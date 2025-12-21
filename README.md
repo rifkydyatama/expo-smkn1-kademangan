@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Copy env template and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
 First, run the development server:
 
 ```bash
@@ -15,6 +21,27 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Optional: Cleanup Certificate Settings (Supabase)
+
+If you have removed all certificate features from the app, you can also delete the leftover certificate-related keys in Supabase table `event_settings`.
+
+1) Set env vars (PowerShell example):
+
+```powershell
+$env:SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY = "YOUR_SERVICE_ROLE_KEY"
+```
+
+2) Run:
+
+```bash
+npm run cleanup:certificate-settings
+```
+
+Notes:
+- The script deletes these keys (if present): `kop_agency_1`, `kop_agency_2`, `school_address`, `headmaster_nip`, `cert_number_format`, `site_url`.
+- Using a service role key is recommended; deletion may fail with the anon key if RLS is enabled.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
