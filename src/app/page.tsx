@@ -354,6 +354,26 @@ const CertificateView = ({
                     .cert-bars {
                         width: 100% !important;
                     }
+
+                    .cert-sign {
+                        max-width: 82mm !important;
+                    }
+
+                    .cert-sign .qr-box {
+                        padding: 2mm !important;
+                    }
+
+                    .cert-sign .headmaster-name {
+                        font-size: 12pt !important;
+                        line-height: 1.15 !important;
+                        word-break: break-word !important;
+                    }
+
+                    .cert-sign .headmaster-nip {
+                        font-size: 11pt !important;
+                        line-height: 1.15 !important;
+                        word-break: break-word !important;
+                    }
                 }
             `}</style>
             <div className="w-full max-w-[297mm] flex justify-between mb-4 print:hidden">
@@ -443,12 +463,12 @@ const CertificateView = ({
 
                     {/* 4. TANDA TANGAN ELEKTRONIK (QR CODE) */}
                     <div className="flex justify-end mt-auto pt-4 px-6 sm:px-12">
-                        <div className="text-center w-64 sm:w-80">
+                        <div className="cert-sign text-center w-64 sm:w-80">
                             <p className="text-base sm:text-lg mb-2">Blitar, {today}</p>
                             <p className="text-base sm:text-lg font-bold mb-3">Kepala Sekolah,</p>
 
                             {/* QR CODE BOX */}
-                            <div className="border border-slate-300 bg-slate-50 p-2 rounded-lg inline-block mb-2">
+                            <div className="qr-box border border-slate-300 bg-slate-50 p-2 rounded-lg inline-block mb-2">
                                 <QRCodeSVG value={verifyUrl} size={96} level="H" className="mx-auto" />
                             </div>
 
@@ -458,8 +478,12 @@ const CertificateView = ({
                                 Scan QR Code untuk validasi keaslian.
                             </p>
 
-                            <p className="text-base sm:text-lg font-bold underline underline-offset-2">{config.headmaster_name || "NAMA KEPALA SEKOLAH"}</p>
-                            <p className="text-base sm:text-lg leading-tight">NIP. {config.headmaster_nip || "-"}</p>
+                            <p className="headmaster-name text-base sm:text-lg font-bold underline underline-offset-2 wrap-break-word whitespace-normal">
+                                {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
+                            </p>
+                            <p className="headmaster-nip text-base sm:text-lg leading-tight wrap-break-word whitespace-normal">
+                                NIP. {config.headmaster_nip || "-"}
+                            </p>
                         </div>
                     </div>
                 </div>
