@@ -283,7 +283,7 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
     );
 });
 
-// --- 5.5. CERTIFICATE VIEW (DINAS STYLE - OFFICIAL) ---
+// --- KOMPONEN SERTIFIKAT PREMIUM (FIX LAYOUT & MARGIN) ---
 const CertificateView = ({ data, config, onClose }: { data: any, config: any, onClose: () => void }) => {
     // 1. Format Nomor Surat
     const rawFormat = config.cert_number_format || "421.5/[NO]/SMK.01/2025";
@@ -300,35 +300,37 @@ const CertificateView = ({ data, config, onClose }: { data: any, config: any, on
     return (
         <div className="fixed inset-0 z-[300] bg-slate-900/95 flex flex-col items-center justify-start pt-4 pb-8 px-2 overflow-y-auto print:bg-white print:p-0 print:block print:overflow-visible print:static">
             
-            {/* CSS Print & Responsive Logic */}
+            {/* CSS Print Logic (Strict A4 Landscape) */}
             <style jsx global>{`
                 @media print {
                     @page {
-                        size: auto;   /* Biarkan user memilih Landscape/Portrait di dialog print */
-                        margin: 0mm;  /* Hilangkan margin default */
+                        size: A4 landscape; /* Memaksa ukuran A4 Landscape */
+                        margin: 0;          /* Nol-kan margin browser */
                     }
-                    body {
+                    html, body {
+                        width: 297mm;
+                        height: 210mm;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: #ffffff !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    /* Sembunyikan elemen UI */
                     nav, footer, button, .no-print {
                         display: none !important;
                     }
-                    /* Reset container sertifikat saat print */
                     .cert-scale-wrapper {
                         transform: none !important;
-                        height: auto !important;
                         width: 100% !important;
+                        height: 100% !important;
                         display: block !important;
-                        overflow: visible !important;
+                        margin: 0 !important;
                     }
                     .cert-paper {
-                        width: 100% !important;
-                        height: auto !important;
-                        aspect-ratio: 297/210 !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
                         box-shadow: none !important;
-                        margin: 0 auto !important;
+                        margin: 0 !important;
                         page-break-after: always;
                     }
                 }
@@ -340,98 +342,98 @@ const CertificateView = ({ data, config, onClose }: { data: any, config: any, on
                     <X size={18}/> Tutup
                 </button>
                 <button onClick={() => window.print()} className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-4 md:px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-amber-500/20 text-sm md:text-base">
-                    <Printer size={18}/> Cetak / PDF
+                    <Printer size={18}/> Cetak (A4)
                 </button>
             </div>
 
-            {/* WRAPPER SCALING (Agar Responsif di HP) */}
+            {/* WRAPPER SCALING (Agar Responsif di Layar HP tapi Presisi saat Print) */}
             <div className="w-full flex justify-center items-start print:block print:w-full print:h-full">
-                {/* Teknik Scaling:
-                   - Mobile (Default): scale-[0.28] -> Mengecilkan sertifikat besar ke layar HP
-                   - Tablet (sm): scale-[0.45]
-                   - Laptop (lg): scale-[0.8]
-                   - Layar Besar (xl): scale-100 (Ukuran Asli)
-                   - Print: scale-100 (Ukuran Asli Kertas)
-                */}
                 <div className="cert-scale-wrapper origin-top transition-transform duration-300 transform scale-[0.34] xs:scale-[0.4] sm:scale-[0.55] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 print:transform-none print:scale-100">
                     
                     {/* KERTAS SERTIFIKAT (A4 LANDSCAPE: 297mm x 210mm) */}
-                    <div className="cert-paper bg-[#fffdf5] text-slate-900 w-[297mm] h-[210mm] relative shadow-2xl overflow-hidden font-serif leading-none flex flex-col mx-auto">
+                    <div className="cert-paper bg-[#fffdf5] text-slate-900 w-[297mm] h-[210mm] relative shadow-2xl overflow-hidden font-serif leading-none flex flex-col mx-auto border border-slate-200">
                         
                         {/* === DEKORASI BACKGROUND === */}
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-60 mix-blend-multiply pointer-events-none"></div>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
                             {config.event_logo_url ? <img src={config.event_logo_url} className="w-[150mm] h-[150mm] object-contain grayscale" /> : <School size={500} />}
                         </div>
-                        <div className="absolute inset-5 border-[3px] border-slate-800 pointer-events-none z-20"></div>
-                        <div className="absolute inset-3 border-[8px] border-double border-yellow-600/30 pointer-events-none z-10"></div>
+                        {/* Border Dekoratif (Batik/Line) - Diberi jarak 15mm (Safe Area) */}
+                        <div className="absolute inset-[15mm] border-[3px] border-slate-900 pointer-events-none z-20"></div>
+                        <div className="absolute inset-[18mm] border-[1px] border-slate-500 pointer-events-none z-10"></div>
                         
                         {/* ORNAMEN SUDUT */}
-                        <div className="absolute top-0 left-0 w-40 h-40 bg-[url('https://www.transparenttextures.com/patterns/gplay.png')] opacity-10 pointer-events-none"></div>
-                        <div className="absolute bottom-0 right-0 w-40 h-40 bg-[url('https://www.transparenttextures.com/patterns/gplay.png')] opacity-10 pointer-events-none rotate-180"></div>
+                        <div className="absolute top-[15mm] left-[15mm] w-20 h-20 border-t-[5px] border-l-[5px] border-yellow-600 z-30"></div>
+                        <div className="absolute top-[15mm] right-[15mm] w-20 h-20 border-t-[5px] border-r-[5px] border-yellow-600 z-30"></div>
+                        <div className="absolute bottom-[15mm] left-[15mm] w-20 h-20 border-b-[5px] border-l-[5px] border-yellow-600 z-30"></div>
+                        <div className="absolute bottom-[15mm] right-[15mm] w-20 h-20 border-b-[5px] border-r-[5px] border-yellow-600 z-30"></div>
 
-                        {/* === KONTEN UTAMA === */}
-                        <div className="relative z-30 w-full h-full flex flex-col justify-between pt-16 pb-12 px-20">
+                        {/* === KONTEN UTAMA (MARGIN AMAN 25MM) === */}
+                        {/* Padding p-[25mm] menjamin teks aman dari potongan printer */}
+                        <div className="relative z-30 w-full h-full flex flex-col justify-between p-[25mm]">
                             
                             {/* 1. HEADER (KOP SURAT) */}
-                            <div className="flex items-center justify-center border-b-[3px] border-slate-800 pb-6 relative">
-                                <div className="absolute left-4 top-0 w-24 h-24 flex items-center justify-center">
+                            <div className="flex items-center justify-center border-b-[3px] border-double border-slate-900 pb-3 mb-2 relative">
+                                <div className="absolute left-0 top-0 w-24 h-24 flex items-center justify-center">
                                      {config.event_logo_url ? <img src={config.event_logo_url} alt="Logo" className="max-h-full max-w-full object-contain" /> : <School size={60} className="text-slate-400"/>}
                                 </div>
-                                <div className="text-center w-full px-28">
-                                    <h3 className="text-xl tracking-[0.1em] font-medium text-slate-600 uppercase mb-1">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
-                                    <h3 className="text-xl tracking-[0.1em] font-bold text-slate-700 uppercase mb-2">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
-                                    <h1 className="text-4xl font-black text-slate-900 uppercase tracking-widest scale-y-110">SMK NEGERI 1 KADEMANGAN</h1>
-                                    <p className="text-sm font-medium italic text-slate-500 mt-1">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
+                                <div className="text-center w-full px-24">
+                                    <h3 className="text-xl tracking-[0.1em] font-medium text-slate-700 uppercase mb-1 font-serif">{config.kop_agency_1 || "PEMERINTAH PROVINSI JAWA TIMUR"}</h3>
+                                    <h3 className="text-xl tracking-[0.1em] font-bold text-black uppercase mb-1 font-serif">{config.kop_agency_2 || "DINAS PENDIDIKAN"}</h3>
+                                    <h1 className="text-4xl font-black text-black uppercase tracking-widest scale-y-110 font-serif">SMK NEGERI 1 KADEMANGAN</h1>
+                                    <p className="text-sm font-medium italic text-black font-serif mt-1">{config.school_address || "Jl. Mawar No. 12, Kademangan, Blitar"}</p>
+                                </div>
+                                <div className="absolute right-0 top-0 w-24 h-24 flex items-center justify-center opacity-90">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" alt="Tut Wuri" className="h-20 w-auto" />
                                 </div>
                             </div>
 
                             {/* 2. BODY (JUDUL & NAMA) */}
-                            <div className="flex-1 flex flex-col items-center justify-center text-center -mt-4">
-                                <h2 className="text-6xl font-black text-yellow-600/90 mb-3 tracking-[0.2em] font-serif" style={{ fontFamily: 'Times New Roman' }}>SERTIFIKAT</h2>
-                                <p className="text-lg font-bold text-slate-500 tracking-widest mb-8 font-mono">NO: {certNumber}</p>
+                            <div className="flex-1 flex flex-col items-center justify-center text-center -mt-2">
+                                <h2 className="text-5xl font-bold text-black underline decoration-[3px] underline-offset-8 mb-2 tracking-[0.2em]" style={{ fontFamily: 'Times New Roman, serif' }}>SERTIFIKAT</h2>
+                                <p className="text-lg font-bold text-slate-700 tracking-widest mb-6 font-mono">NOMOR: {certNumber}</p>
 
-                                <p className="text-xl text-slate-700 mb-6 font-medium">Kepala SMK Negeri 1 Kademangan memberikan penghargaan kepada:</p>
+                                <p className="text-xl text-black mb-4 font-serif">Kepala SMK Negeri 1 Kademangan memberikan penghargaan kepada:</p>
                                 
-                                {/* NAMA PESERTA */}
-                                <div className="w-full mb-8 relative">
-                                    <h1 className="text-5xl font-black text-slate-900 uppercase tracking-wide scale-y-105 px-8 pb-2 border-b-2 border-slate-300 inline-block min-w-[50%]">
+                                <div className="w-full mb-6 relative">
+                                    <h1 className="text-5xl font-bold text-black uppercase tracking-wide px-8 pb-2 border-b-2 border-slate-400 inline-block min-w-[60%] font-serif">
                                         {data.name}
                                     </h1>
-                                    <p className="text-2xl font-bold text-slate-600 mt-3">({data.origin_school})</p>
+                                    <p className="text-2xl font-bold text-slate-800 mt-2 font-serif">({data.origin_school})</p>
                                 </div>
 
-                                <p className="text-xl leading-relaxed max-w-5xl mx-auto text-slate-700 px-10">
-                                    Atas partisipasinya sebagai <strong className="text-yellow-700 uppercase font-bold">PESERTA AKTIF</strong> dalam kegiatan 
-                                    <span className="font-bold text-2xl block mt-2 mb-1">"{config.hero_title || 'EXPO VOKASI 2025'}"</span>
+                                <p className="text-lg leading-relaxed max-w-4xl mx-auto text-black font-serif px-6">
+                                    Atas partisipasinya sebagai <strong className="text-yellow-700 uppercase font-black">PESERTA AKTIF</strong> dalam kegiatan 
+                                    <span className="font-bold text-2xl block mt-1 mb-1">"{config.hero_title || 'EXPO VOKASI 2025'}"</span>
                                     yang diselenggarakan pada tanggal {config.event_date || "20 Mei 2025"}.
                                 </p>
                             </div>
 
                             {/* 3. FOOTER (TTD & QR) */}
-                            <div className="w-full flex justify-end pr-8">
-                                <div className="text-center w-[300px]">
-                                    <p className="text-lg text-slate-600 mb-1">Blitar, {today}</p>
-                                    <p className="text-lg font-bold text-slate-800 mb-6">Kepala Sekolah,</p>
+                            <div className="w-full flex justify-end pr-4">
+                                <div className="text-center w-[320px] relative">
+                                    <p className="text-lg text-black mb-1 font-serif">Blitar, {today}</p>
+                                    <p className="text-lg font-bold text-black mb-3 font-serif">Kepala Sekolah,</p>
                                     
-                                    {/* Area TTD / QR */}
-                                    <div className="h-32 flex items-center justify-center relative mb-2">
-                                         <div className="bg-white p-2 rounded-xl shadow-sm border-2 border-slate-200 relative z-10">
+                                    {/* QR Code Area */}
+                                    <div className="h-28 flex items-center justify-center relative mb-1">
+                                         <div className="bg-white p-1 border border-black inline-block">
                                              <QRCodeSVG 
                                                 value={validationUrl} 
                                                 size={90} 
                                                 level="H" 
-                                                fgColor="#1e293b"
+                                                fgColor="#000000"
                                              />
                                          </div>
-                                         {/* Garis Dekorasi */}
-                                         <div className="absolute inset-x-4 top-1/2 h-[1px] bg-slate-300 -z-0"></div>
+                                         <div className="absolute -right-5 top-1/2 -translate-y-1/2 -rotate-90 origin-center">
+                                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">DIGITAL SIGNATURE</span>
+                                         </div>
                                     </div>
 
-                                    <p className="text-lg font-bold text-slate-900 underline underline-offset-4 decoration-2 uppercase mt-1">
+                                    <p className="text-lg font-bold text-black underline underline-offset-4 decoration-2 uppercase mt-1 font-serif">
                                         {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
                                     </p>
-                                    <p className="text-lg text-slate-600 mt-1">NIP. {config.headmaster_nip || "-"}</p>
+                                    <p className="text-lg text-black font-serif mt-1">NIP. {config.headmaster_nip || "-"}</p>
                                 </div>
                             </div>
                         </div>
