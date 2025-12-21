@@ -153,6 +153,8 @@ export default function AdminPage() {
   const [newCampusDesc, setNewCampusDesc] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null); // Logo Kampus
   const [mainLogoFile, setMainLogoFile] = useState<File | null>(null); // Main Logo Website
+    const [signatureFile, setSignatureFile] = useState<File | null>(null); // Tanda Tangan Sertifikat
+    const [stampFile, setStampFile] = useState<File | null>(null); // Stempel Sertifikat
   const [uploading, setUploading] = useState(false);
     const [highlightsSaving, setHighlightsSaving] = useState(false);
 
@@ -404,6 +406,58 @@ export default function AdminPage() {
          }
      }
      setLoading(false);
+  };
+
+  // --- UPDATE CERTIFICATE ASSETS (SIGNATURE & STAMP) ---
+  const handleUpdateCertAssets = async () => {
+      if (!signatureFile && !stampFile) {
+          showNotify("Pilih file tanda tangan dan/atau stempel terlebih dahulu!", "error");
+          return;
+      }
+
+      setLoading(true);
+      try {
+          let updatedCount = 0;
+
+          if (signatureFile) {
+              const signatureUrl = await handleUploadImage(signatureFile);
+              if (signatureUrl) {
+                  const { error } = await supabase
+                      .from("event_settings")
+                      .upsert({ key: "signature_url", value: signatureUrl }, { onConflict: "key" });
+
+                  if (error) {
+                      showNotify("Gagal menyimpan signature_url: " + error.message, "error");
+                  } else {
+                      updatedCount++;
+                      setSignatureFile(null);
+                  }
+              }
+          }
+
+          if (stampFile) {
+              const stampUrl = await handleUploadImage(stampFile);
+              if (stampUrl) {
+                  const { error } = await supabase
+                      .from("event_settings")
+                      .upsert({ key: "stamp_url", value: stampUrl }, { onConflict: "key" });
+
+                  if (error) {
+                      showNotify("Gagal menyimpan stamp_url: " + error.message, "error");
+                  } else {
+                      updatedCount++;
+                      setStampFile(null);
+                  }
+              }
+          }
+
+          if (updatedCount > 0) {
+              showNotify("✅ Asset E-Sertifikat berhasil diupdate!", "success");
+              fetchAllData();
+          }
+      } finally {
+          setLoading(false);
+      }
   };
 
   // --- CRUD ACTIONS (SETTINGS, CAMPUS, RUNDOWN, FAQ) ---
@@ -1297,6 +1351,154 @@ export default function AdminPage() {
                         <div className="space-y-4">
                             <input type="text" value={settings.headmaster_name || ""} onChange={e => setSettings({...settings, headmaster_name: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl transition-all focus:ring-2 focus:ring-slate-900 outline-none" placeholder="Nama Lengkap & Gelar"/>
                             <textarea value={settings.headmaster_quote || ""} onChange={e => setSettings({...settings, headmaster_quote: e.target.value})} className="w-full p-4 border border-slate-200 rounded-xl h-28 transition-all focus:ring-2 focus:ring-slate-900 outline-none" placeholder="Kutipan Sambutan..."/>
+                        </div>
+                    </div>
+
+                    {/* E-CERTIFICATE BUILDER */}
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-[100px] -mr-10 -mt-10 z-0"></div>
+
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-3 relative z-10">
+                            <Award size={20} className="text-amber-600" /> Pengaturan E-Sertifikat
+                        </h3>
+
+                        <p className="text-xs text-slate-400 mb-6 relative z-10">
+                            Atur kop surat, alamat, data kepala sekolah, serta upload tanda tangan & stempel untuk sertifikat.
+                        </p>
+
+                        {/* Text Settings */}
+                        <div className="space-y-5 relative z-10">
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kop Surat - Baris 1</label>
+                                <input
+                                    type="text"
+                                    value={settings.kop_agency_1 || ""}
+                                    onChange={e => setSettings({ ...settings, kop_agency_1: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                    placeholder="Contoh: PEMERINTAH PROVINSI ..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kop Surat - Baris 2</label>
+                                <input
+                                    type="text"
+                                    value={settings.kop_agency_2 || ""}
+                                    onChange={e => setSettings({ ...settings, kop_agency_2: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                    placeholder="Contoh: DINAS PENDIDIKAN"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Sekolah</label>
+                                <textarea
+                                    value={settings.school_address || ""}
+                                    onChange={e => setSettings({ ...settings, school_address: e.target.value })}
+                                    className="w-full p-4 border border-slate-200 rounded-xl mt-2 h-24 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                    placeholder="Alamat lengkap sekolah..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Kepala Sekolah</label>
+                                    <input
+                                        type="text"
+                                        value={settings.headmaster_name || ""}
+                                        onChange={e => setSettings({ ...settings, headmaster_name: e.target.value })}
+                                        className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                        placeholder="Nama Lengkap & Gelar"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">NIP Kepala Sekolah</label>
+                                    <input
+                                        type="text"
+                                        value={settings.headmaster_nip || ""}
+                                        onChange={e => setSettings({ ...settings, headmaster_nip: e.target.value })}
+                                        className="w-full p-4 border border-slate-200 rounded-xl mt-2 font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                                        placeholder="Contoh: 196xxxxx 199xxxxx 1 00x"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Upload Assets */}
+                        <div className="mt-8 relative z-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="text-sm font-bold text-slate-800">Upload Tanda Tangan</div>
+                                        {settings.signature_url && (
+                                            <a
+                                                href={settings.signature_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-xs font-bold text-cyan-700 hover:text-cyan-900"
+                                            >
+                                                Lihat
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    <label className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-white transition-all ${signatureFile ? 'border-amber-500 bg-amber-50/60' : 'border-slate-300 bg-white/60'}`}>
+                                        <UploadCloud size={24} className={signatureFile ? "text-amber-600" : "text-slate-400"}/>
+                                        <div className="text-xs font-bold text-slate-600">
+                                            {signatureFile ? signatureFile.name : "Pilih file tanda tangan (PNG transparan disarankan)"}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => setSignatureFile(e.target.files ? e.target.files[0] : null)}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="text-sm font-bold text-slate-800">Upload Stempel</div>
+                                        {settings.stamp_url && (
+                                            <a
+                                                href={settings.stamp_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-xs font-bold text-cyan-700 hover:text-cyan-900"
+                                            >
+                                                Lihat
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    <label className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer hover:bg-white transition-all ${stampFile ? 'border-amber-500 bg-amber-50/60' : 'border-slate-300 bg-white/60'}`}>
+                                        <UploadCloud size={24} className={stampFile ? "text-amber-600" : "text-slate-400"}/>
+                                        <div className="text-xs font-bold text-slate-600">
+                                            {stampFile ? stampFile.name : "Pilih file stempel (PNG transparan disarankan)"}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => setStampFile(e.target.files ? e.target.files[0] : null)}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleUpdateCertAssets}
+                                disabled={loading || (!signatureFile && !stampFile)}
+                                className="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-amber-600 transition-colors disabled:opacity-50 flex justify-center gap-2 shadow-lg"
+                            >
+                                {loading ? <RefreshCw className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
+                                Upload & Simpan Asset Sertifikat
+                            </button>
+
+                            <div className="mt-3 text-xs text-slate-400">
+                                Catatan: Tombol ini hanya untuk upload gambar (tanda tangan/stempel). Untuk menyimpan teks (kop/alamat/NIP), klik "SIMPAN SEMUA KONFIGURASI".
+                            </div>
                         </div>
                     </div>
 
