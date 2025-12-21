@@ -447,7 +447,7 @@ const CertificateView = ({ data, config, onClose }: { data: any; config: any; on
                     </div>
 
                     {/* 2. BODY (JUDUL & NAMA) */}
-                    <div className="flex flex-col items-center justify-center text-center -mt-4 pb-44">
+                    <div className="flex flex-col items-center justify-center text-center -mt-4 pb-56 max-w-[210mm] mx-auto">
                         <h2
                             className="text-6xl font-black text-yellow-600/90 mb-3 tracking-[0.2em] font-serif"
                             style={{ fontFamily: "Times New Roman" }}
@@ -462,7 +462,7 @@ const CertificateView = ({ data, config, onClose }: { data: any; config: any; on
 
                         {/* NAMA PESERTA */}
                         <div className="w-full mb-8 relative">
-                            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-wide scale-y-105 px-8 pb-2 border-b-2 border-slate-300 inline-block min-w-[50%] wrap-break-word">
+                            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-wide scale-y-105 px-8 pb-2 border-b-2 border-slate-300 inline-block min-w-[50%] wrap-break-word leading-tight">
                                 {data?.name}
                             </h1>
                             <p className="text-2xl font-bold text-slate-600 mt-3 wrap-break-word">({data?.origin_school})</p>
@@ -476,25 +476,27 @@ const CertificateView = ({ data, config, onClose }: { data: any; config: any; on
                     </div>
 
                     {/* 3. FOOTER (TTD & QR - FIXED, ABSOLUTE, CLEAN) */}
-                    <div className="cert-sign absolute bottom-12 right-20 text-center w-75">
-                        {/* Tanggal */}
-                        <p className="text-lg text-slate-600 mb-1">Blitar, {today}</p>
-                        <p className="text-lg font-bold text-slate-800 mb-6">Kepala Sekolah,</p>
+                    <div className="cert-sign absolute bottom-10 right-20 text-center w-80">
+                        <div className="bg-white/75 print:bg-white border border-slate-200/70 rounded-2xl px-4 py-3">
+                            {/* Tanggal */}
+                            <p className="text-lg text-slate-600 mb-1">Blitar, {today}</p>
+                            <p className="text-lg font-bold text-slate-800 mb-6">Kepala Sekolah,</p>
 
-                        {/* Area TTD / QR (Fixed Height biar gak goyang) */}
-                        <div className="h-32 flex items-center justify-center relative mb-2">
-                            <div className="qr-box bg-white p-2 rounded-xl shadow-sm border-2 border-slate-200 relative z-10">
-                                <QRCodeSVG value={verifyUrl} size={90} level="H" fgColor="#1e293b" />
+                            {/* Area TTD / QR (Fixed Height biar gak goyang) */}
+                            <div className="h-32 flex items-center justify-center relative mb-2">
+                                <div className="qr-box bg-white p-2 rounded-xl shadow-sm border-2 border-slate-200 relative z-10">
+                                    <QRCodeSVG value={verifyUrl} size={90} level="H" fgColor="#1e293b" />
+                                </div>
+                                {/* Garis Dekorasi di belakang QR */}
+                                <div className="absolute inset-x-4 top-1/2 h-px bg-slate-300 z-0" />
                             </div>
-                            {/* Garis Dekorasi di belakang QR */}
-                            <div className="absolute inset-x-4 top-1/2 h-px bg-slate-300 z-0" />
-                        </div>
 
-                        {/* Nama & NIP */}
-                        <p className="headmaster-name text-lg font-bold text-slate-900 underline underline-offset-4 decoration-2 uppercase mt-1 wrap-break-word">
-                            {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
-                        </p>
-                        <p className="headmaster-nip text-lg text-slate-600 mt-1 wrap-break-word">NIP. {config.headmaster_nip || "-"}</p>
+                            {/* Nama & NIP */}
+                            <p className="headmaster-name text-lg font-bold text-slate-900 underline underline-offset-4 decoration-2 uppercase mt-1 wrap-break-word">
+                                {config.headmaster_name || "NAMA KEPALA SEKOLAH"}
+                            </p>
+                            <p className="headmaster-nip text-lg text-slate-600 mt-1 wrap-break-word">NIP. {config.headmaster_nip || "-"}</p>
+                        </div>
                     </div>
                 </div>
             </div>
