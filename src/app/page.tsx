@@ -293,6 +293,24 @@ const CertificateView = ({ data, config, onClose }: { data: any, config: any, on
     const certNumber = rawFormat.replace('[NO]', String(data.id).padStart(3, '0'));
     const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
+    const verifyUrl = (() => {
+        const rawId = String(data?.id ?? "").trim();
+        const rawCode = String(data?.ticket_code ?? "").trim();
+        const fallbackBase = "https://yoursite.com";
+        const path = rawId ? `/verify/${encodeURIComponent(rawId)}` : "/verify";
+        const query = rawCode ? `?code=${encodeURIComponent(rawCode)}` : "";
+
+        try {
+            const fromConfig = String(config?.site_url ?? "").trim();
+            const fromEnv = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+            const fromWindow = typeof window !== "undefined" ? window.location.origin : "";
+            const base = (fromConfig || fromEnv || fromWindow || fallbackBase).replace(/\/$/, "");
+            return `${base}${path}${query}`;
+        } catch {
+            return `${fallbackBase}${path}${query}`;
+        }
+    })();
+
     return (
     <div className="fixed inset-0 z-[300] bg-slate-900/95 flex flex-col items-center justify-center p-4 overflow-y-auto print:bg-white print:p-0">
         
@@ -387,7 +405,7 @@ const CertificateView = ({ data, config, onClose }: { data: any, config: any, on
                         <div className="h-32 flex flex-col items-center justify-center relative my-1">
                              <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
                                  <QRCodeSVG 
-                                    value={`OFFICIAL-CERT:${certNumber}/${data.id}`} 
+                                    value={verifyUrl}
                                     size={90} 
                                     level="M"
                                     fgColor="#334155"
