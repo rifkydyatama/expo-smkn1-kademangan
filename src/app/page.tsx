@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { 
   motion, 
   AnimatePresence, 
@@ -37,6 +38,47 @@ import {
   Timer
 } from "lucide-react";
 
+type EventConfig = Record<string, string>;
+
+type Campus = {
+    id: number;
+    name: string;
+    logo_url?: string | null;
+    description?: string | null;
+};
+
+type Rundown = {
+    id: number;
+    time: string;
+    title: string;
+    description: string;
+};
+
+type Faq = {
+    id: number;
+    question: string;
+    answer: string;
+};
+
+type Highlight = {
+    id: number;
+    title: string;
+    description: string;
+    icon: "Star" | "Award" | "Zap" | "User";
+};
+
+type Participant = {
+    id: number;
+    name: string;
+    origin_school: string;
+    email: string;
+    phone: string;
+    status?: string | null;
+    check_in_time?: string | null;
+    ticket_code?: string | null;
+    created_at?: string | null;
+};
+
 // --- 1. COMPLEX ANIMATION VARIANTS (EXPANDED) ---
 const fadeUpVariant: Variants = {
   hidden: { opacity: 0, y: 50 },
@@ -46,30 +88,6 @@ const fadeUpVariant: Variants = {
     transition: { 
       duration: 0.8, 
       ease: "easeOut" 
-    } 
-  }
-};
-
-const fadeLeftVariant: Variants = {
-  hidden: { opacity: 0, x: -50 },
-  visible: { 
-    opacity: 1, 
-    x: 0, 
-    transition: { 
-      duration: 0.8, 
-      ease: "easeOut" 
-    } 
-  }
-};
-
-const scaleUpVariant: Variants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    transition: { 
-      duration: 0.5, 
-      ease: "backOut" 
     } 
   }
 };
@@ -126,7 +144,7 @@ const getYoutubeId = (raw: unknown): string => {
 };
 
 // --- 2. COMPONENT: ANIMATED COUNTER (PRECISE) ---
-const Counter = memo(({ to }: { to: number }) => {
+const Counter = memo(function Counter({ to }: { to: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
   const isInView = useInView(nodeRef, { once: true });
   
@@ -228,7 +246,7 @@ const MaintenanceScreen = ({ mode }: { mode: string }) => (
 );
 
 // --- 5. COMPONENT: CAMPUS MARQUEE (DETAIL CARD) ---
-const CampusMarquee = memo(({ items }: { items: any[] }) => {
+const CampusMarquee = memo(function CampusMarquee({ items }: { items: Campus[] }) {
     if (!items || items.length === 0) return null;
 
     // Build a "half" track big enough to fill the viewport, then duplicate it.
@@ -261,9 +279,11 @@ const CampusMarquee = memo(({ items }: { items: any[] }) => {
                             <div className="h-24 w-full flex items-center justify-center mb-6 relative">
                                 <div className="absolute inset-0 bg-slate-100 rounded-full scale-0 group-hover/card:scale-100 transition-transform duration-300 opacity-20" />
                                 {c.logo_url ? (
-                                    <img
+                                    <Image
                                         src={c.logo_url}
                                         alt={c.name}
+                                        width={240}
+                                        height={96}
                                         className="max-h-full max-w-full object-contain grayscale group-hover/card:grayscale-0 transition-all duration-500 scale-90 group-hover/card:scale-110"
                                     />
                                 ) : (
@@ -291,11 +311,11 @@ export default function Home() {
     const [initError, setInitError] = useState<string | null>(null);
   
   // Data State
-  const [config, setConfig] = useState<any>({});
-  const [campuses, setCampuses] = useState<any[]>([]);
-  const [rundown, setRundown] = useState<any[]>([]);
-    const [highlights, setHighlights] = useState<any[]>([]);
-  const [faqs, setFaqs] = useState<any[]>([]);
+    const [config, setConfig] = useState<EventConfig>({});
+    const [campuses, setCampuses] = useState<Campus[]>([]);
+    const [rundown, setRundown] = useState<Rundown[]>([]);
+        const [highlights, setHighlights] = useState<Highlight[]>([]);
+    const [faqs, setFaqs] = useState<Faq[]>([]);
   
   // Real-time Counts
   const [realCounts, setRealCounts] = useState({ participants: 0, campuses: 0 });
@@ -303,16 +323,16 @@ export default function Home() {
   // UI State
   const [videoOpen, setVideoOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", origin_school: "", phone: "" });
-  const [ticketData, setTicketData] = useState<any>(null);
+    const [ticketData, setTicketData] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // --- NEW: NOTIFICATION STATE ---
-  const [notification, setNotification] = useState({ show: false, message: "", type: "info" });
+    const [notification, setNotification] = useState<{ show: boolean; message: string; type: "info" | "error" | "success" }>({ show: false, message: "", type: "info" });
   
   // Helper Notifikasi
     const showNotify = useCallback((message: string, type: "info" | "error" | "success" = "info") => {
-      setNotification({ show: true, message, type: type as "info" | "error" }); // Fixed type assertion
+            setNotification({ show: true, message, type });
     }, []);
 
       useEffect(() => {
@@ -369,9 +389,11 @@ export default function Home() {
                             console.error("[landing] failed to fetch event_faq", faqRes.error);
                         }
 
-                        const conf: any = {};
-                        settingsRes.data?.forEach((item: any) => {
-                            conf[item.key] = item.value;
+                        const conf: EventConfig = {};
+                        const settingsRows = (settingsRes.data as Array<{ key: string; value: string | null }> | null) ?? null;
+                        settingsRows?.forEach((item) => {
+                            if (!item?.key) return;
+                            conf[item.key] = String(item.value ?? "");
                         });
 
                         if (!conf.site_mode) conf.site_mode = "LIVE";
@@ -381,10 +403,10 @@ export default function Home() {
                             setConfig(conf);
                             setSiteMode(conf.site_mode);
 
-                            if (campusesRes.data) setCampuses(campusesRes.data);
-                            if (rundownRes.data) setRundown(rundownRes.data);
-                            if (highlightsRes.data) setHighlights(highlightsRes.data);
-                            if (faqRes.data) setFaqs(faqRes.data);
+                            if (campusesRes.data) setCampuses(campusesRes.data as Campus[]);
+                            if (rundownRes.data) setRundown(rundownRes.data as Rundown[]);
+                            if (highlightsRes.data) setHighlights(highlightsRes.data as Highlight[]);
+                            if (faqRes.data) setFaqs(faqRes.data as Faq[]);
                         }
 
                         const { count: participantCount, error: participantCountError } = await supabase
@@ -422,7 +444,7 @@ export default function Home() {
                 const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                 const envAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
                 if (!envUrl || !envAnon) {
-                    console.warn("[landing] Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY (fallbacks may be used in src/lib/supabase.ts)");
+                    console.warn("[landing] Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
                 }
 
                 const savedTicketID = localStorage.getItem("smkn1_expo_ticket_id");
@@ -448,7 +470,7 @@ export default function Home() {
                         }
 
                         if (data) { 
-                                setTicketData(data); 
+                            setTicketData(data as Participant); 
                                 setView("ticket"); 
                         } else { 
                                 localStorage.removeItem("smkn1_expo_ticket_id"); 
@@ -539,8 +561,8 @@ export default function Home() {
         showNotify("Gagal Registrasi: " + error.message, "error"); 
         setLoading(false); 
     } else { 
-        localStorage.setItem("smkn1_expo_ticket_id", data.id); 
-        setTicketData(data); 
+        localStorage.setItem("smkn1_expo_ticket_id", String((data as Participant).id)); 
+        setTicketData(data as Participant); 
         
         // Fake delay for UX
         setTimeout(() => { 
@@ -549,13 +571,6 @@ export default function Home() {
         }, 1500); 
     }
   };
-
-  const resetDevice = () => { 
-      if(confirm("Apakah Anda yakin ingin mereset perangkat ini? Data tiket akan hilang dari browser ini.")) { 
-          localStorage.removeItem("smkn1_expo_ticket_id"); 
-          window.location.reload(); 
-      } 
-  }
 
   const openTicket = useCallback(() => {
       if (!ticketData) return;
@@ -626,9 +641,11 @@ export default function Home() {
                 >
                     <div className="w-12 h-12 bg-linear-to-tr from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition-transform duration-300">
                         {config.event_logo_url ? (
-                            <img
+                            <Image
                                 src={config.event_logo_url}
                                 alt="Event Logo"
+                                width={32}
+                                height={32}
                                 className="w-8 h-8 object-contain"
                             />
                         ) : (
@@ -779,7 +796,7 @@ export default function Home() {
                           </div>
                           <div>
                               <div className="text-4xl sm:text-5xl font-black text-slate-900 flex items-baseline">
-                                  <Counter to={parseInt(config.stats_speakers || 0)}/>
+                                  <Counter to={Number.parseInt(config.stats_speakers || "0", 10)}/>
                               </div>
                               <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mt-2">Speakers</div>
                           </div>
@@ -865,7 +882,7 @@ export default function Home() {
                         variants={fadeUpVariant} 
                         className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-12 italic"
                     >
-                        "{config.headmaster_quote}"
+                        &ldquo;{config.headmaster_quote}&rdquo;
                     </motion.h3>
                     <div className="inline-flex items-center gap-6 bg-slate-50 px-8 py-4 rounded-full border border-slate-100 shadow-sm">
                         <div className="w-16 h-16 bg-linear-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg text-white">

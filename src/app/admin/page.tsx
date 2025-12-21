@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { 
@@ -39,8 +40,6 @@ import {
   Bell,         
   ShieldCheck,  
   Image as ImageIcon,
-  MousePointer2,
-  MoreHorizontal,
   Info // <--- INI YANG TADI KETINGGALAN, SEKARANG SUDAH ADA
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,6 +87,11 @@ type Highlight = {
     icon: "Star" | "Award" | "Zap" | "User";
 };
 
+type EventSettingRow = {
+    key: string;
+    value: string | null;
+};
+
 // ============================================================================
 // 2. MAIN ADMIN COMPONENT
 // ============================================================================
@@ -109,7 +113,7 @@ export default function AdminPage() {
   const [rundown, setRundown] = useState<Rundown[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
     const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [settings, setSettings] = useState<any>({});
+    const [settings, setSettings] = useState<Record<string, string>>({});
   
   // UI Helper State
   const [search, setSearch] = useState("");
@@ -129,7 +133,7 @@ export default function AdminPage() {
   
   // A. Gate Scanner State
   const [scanId, setScanId] = useState("");
-  const [scanResult, setScanResult] = useState<any>(null);
+    const [scanResult, setScanResult] = useState<Participant | null>(null);
   const [scanStatus, setScanStatus] = useState<"IDLE" | "SUCCESS" | "ERROR" | "USED">("IDLE");
 
     // Camera Scanner State (QR)
@@ -142,7 +146,8 @@ export default function AdminPage() {
 
     const playBeep = (variant: "success" | "error" = "success") => {
         try {
-            const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            const w = window as typeof window & { webkitAudioContext?: typeof AudioContext };
+            const AudioCtx = w.AudioContext || w.webkitAudioContext;
             if (!AudioCtx) return;
             const ctx = new AudioCtx();
             const osc = ctx.createOscillator();
@@ -217,8 +222,12 @@ export default function AdminPage() {
 
         // 1. Settings (Config Landing Page)
         const { data: s } = await supabase.from("event_settings").select("*");
-        const conf: any = {}; 
-        s?.forEach(item => conf[item.key] = item.value); 
+        const conf: Record<string, string> = {};
+        const rows = (s as EventSettingRow[] | null) ?? null;
+        rows?.forEach((item) => {
+            if (!item?.key) return;
+            conf[item.key] = String(item.value ?? "");
+        });
         
         // Default Value Protection
         if (!conf.site_mode) conf.site_mode = "LIVE";
@@ -275,18 +284,18 @@ export default function AdminPage() {
             if (!cleanId) return "EMPTY";
 
             // Logic: Hybrid Search (ID or UUID)
-            let user: any = null;
+            let user: Participant | null = null;
 
             // Check ID (Integer)
             if (!isNaN(Number(cleanId))) {
                 const { data } = await supabase.from("participants").select("*").eq("id", cleanId).single();
-                user = data;
+                user = (data as Participant | null) ?? null;
             }
 
             // Check UUID
             if (!user) {
                 const { data } = await supabase.from("participants").select("*").eq("ticket_code", cleanId).single();
-                user = data;
+                user = (data as Participant | null) ?? null;
             }
 
             // Process Result
@@ -380,7 +389,7 @@ export default function AdminPage() {
                 }
 
                 // Ignore "no barcode found" frame errors to keep scanning quietly
-                const errName = (error as any)?.name;
+                const errName = (error as { name?: string } | null)?.name;
                 if (errName && errName !== "NotFoundException") {
                     // Keep silent by default to avoid noisy UI; only surface hard camera-start errors.
                 }
@@ -430,8 +439,9 @@ export default function AdminPage() {
             .getPublicUrl(fileName);
 
         return data.publicUrl;
-    } catch (error: any) {
-        showNotify("Gagal Upload Gambar: " + error.message, "error");
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        showNotify("Gagal Upload Gambar: " + message, "error");
         return null;
     }
   };
@@ -507,7 +517,7 @@ export default function AdminPage() {
     setLoading(true);
     let errorCount = 0;
 
-        const normalizedSettings: any = { ...settings };
+        const normalizedSettings: Record<string, string> = { ...settings };
         if (Object.prototype.hasOwnProperty.call(normalizedSettings, "youtube_video_id")) {
             normalizedSettings.youtube_video_id = normalizeYouTubeVideoId(normalizedSettings.youtube_video_id);
         }
@@ -558,7 +568,7 @@ export default function AdminPage() {
     setUploading(false);
   };
 
-  const addItem = async (table: string, data: any) => {
+    const addItem = async (table: string, data: Record<string, unknown>) => {
     const { error } = await supabase.from(table).insert(data);
     if (error) showNotify("Gagal tambah data: " + error.message, "error");
     else {
@@ -1219,7 +1229,13 @@ export default function AdminPage() {
                              {/* Preview Logo Saat Ini */}
                              {settings.event_logo_url && (
                                 <div className="h-24 w-24 bg-slate-50 border rounded-xl p-2 flex items-center justify-center relative group overflow-hidden">
-                                    <img src={settings.event_logo_url} alt="Current Logo" className="max-h-full max-w-full object-contain"/>
+                                    <Image
+                                        src={settings.event_logo_url}
+                                        alt="Current Logo"
+                                        width={96}
+                                        height={96}
+                                        className="max-h-full max-w-full object-contain"
+                                    />
                                 </div>
                              )}
                              
@@ -1381,7 +1397,13 @@ export default function AdminPage() {
                         {campuses.map(c => (
                             <div key={c.id} className="flex gap-4 p-4 border border-slate-200 rounded-2xl hover:border-cyan-300 hover:shadow-md transition-all group relative bg-white">
                                 <div className="w-16 h-16 rounded-xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm overflow-hidden">
-                                    <img src={c.logo_url || "https://via.placeholder.com/50?text=IMG"} alt={c.name} className="max-w-full max-h-full object-contain" />
+                                    <Image
+                                        src={c.logo_url || "https://via.placeholder.com/50?text=IMG"}
+                                        alt={c.name}
+                                        width={64}
+                                        height={64}
+                                        className="max-w-full max-h-full object-contain"
+                                    />
                                 </div>
                                 <div className="flex-1 pr-6">
                                     <div className="font-bold text-slate-900 text-sm mb-1">{c.name}</div>
