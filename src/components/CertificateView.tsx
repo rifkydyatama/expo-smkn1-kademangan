@@ -102,7 +102,7 @@ export function CertificateView(props: CertificateViewProps) {
                       <div className="inline-flex items-center justify-center gap-3">
                         <div className="h-px w-16 bg-amber-300" />
                         <div className="text-[12px] font-black tracking-[0.35em] text-blue-950 uppercase">
-                          {config?.school_address ?? ""}
+                          {config?.kop_agency_1 ?? ""}
                         </div>
                         <div className="h-px w-16 bg-amber-300" />
                       </div>
@@ -112,11 +112,11 @@ export function CertificateView(props: CertificateViewProps) {
                       </h1>
 
                       <div className="mt-3 text-sm font-semibold text-slate-500">
-                        {config?.kop_agency_1 ?? ""}
+                        {config?.kop_agency_2 ?? ""}
                       </div>
 
                       <div className="mt-1 text-sm font-semibold text-slate-500">
-                        {config?.kop_agency_2 ?? ""}
+                        {config?.school_address ?? ""}
                       </div>
 
                       <div className="mt-3 text-sm font-semibold text-slate-500">
@@ -188,7 +188,11 @@ export function CertificateView(props: CertificateViewProps) {
                               alt="Signature"
                               className="ml-auto h-12 w-auto object-contain"
                             />
-                          ) : null}
+                          ) : (
+                            <div className="ml-auto h-12 w-auto object-contain flex items-center justify-end">
+                              Signature
+                            </div>
+                          )}
 
                           {config?.stamp_url ? (
                             <img
@@ -196,11 +200,13 @@ export function CertificateView(props: CertificateViewProps) {
                               alt="Stamp"
                               className="ml-auto mt-2 h-14 w-14 object-contain"
                             />
-                          ) : null}
+                          ) : (
+                            <div className="ml-auto mt-2 h-14 w-14 object-contain flex items-center justify-center">
+                              Stamp
+                            </div>
+                          )}
 
-                          {config?.headmaster_nip ? (
-                            <div className="mt-2">{config.headmaster_nip}</div>
-                          ) : null}
+                          <div className="mt-2">{config?.headmaster_nip ?? ""}</div>
                         </div>
                       </div>
                     </div>
