@@ -8,6 +8,11 @@ Copy env template and fill values:
 cp .env.example .env.local
 ```
 
+Admin login (server-side cookie session) requires:
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+- `ADMIN_SESSION_SECRET` (server-only)
+- Optional: `ADMIN_USERNAME` and `ADMIN_INITIAL_PASSWORD` (used only to bootstrap the first password hash)
+
 First, run the development server:
 
 ```bash

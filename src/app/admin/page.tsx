@@ -99,6 +99,8 @@ type EventSettingRow = {
 export default function AdminPage() {
   // --- STATE MANAGEMENT SYSTEM ---
   const [session, setSession] = useState(false);
+    const [authChecking, setAuthChecking] = useState(true);
+    const [adminUser, setAdminUser] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,6 +108,12 @@ export default function AdminPage() {
   // Auth State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+    // Change Password State
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+    const [changingPassword, setChangingPassword] = useState(false);
 
   // Data State (Database Mirrors)
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -202,17 +210,81 @@ export default function AdminPage() {
   // ============================================================================
 
   // --- LOGIN SYSTEM ---
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Hardcoded credentials 
-    if (email === "admin" && password === "admin123") {
-      setSession(true);
-      fetchAllData();
-      showNotify("Berhasil Login! Selamat datang Admin.", "success");
-    } else { 
-      showNotify("Akses Ditolak! Username atau Password salah.", "error");
-    }
-  };
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await fetch("/api/admin/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: email, password }),
+            });
+
+            if (!res.ok) {
+                const data = (await res.json().catch(() => null)) as { error?: string } | null;
+                showNotify(data?.error || "Akses Ditolak! Username atau Password salah.", "error");
+                return;
+            }
+
+            const data = (await res.json().catch(() => null)) as { username?: string } | null;
+            setAdminUser(data?.username || email);
+            setSession(true);
+            await fetchAllData();
+            showNotify("Berhasil Login! Selamat datang Admin.", "success");
+        } catch {
+            showNotify("Gagal login. Periksa koneksi.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/admin/logout", { method: "POST" });
+        } finally {
+            setSession(false);
+            setAdminUser(null);
+            setEmail("");
+            setPassword("");
+            showNotify("Logout berhasil.", "success");
+        }
+    };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentPassword || !newPassword) {
+            showNotify("Isi password lama dan password baru.", "error");
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            showNotify("Konfirmasi password baru tidak sama.", "error");
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            const res = await fetch("/api/admin/change-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword }),
+            });
+
+            if (!res.ok) {
+                const data = (await res.json().catch(() => null)) as { error?: string } | null;
+                showNotify(data?.error || "Gagal mengganti password.", "error");
+                return;
+            }
+
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmNewPassword("");
+            showNotify("Password admin berhasil diubah.", "success");
+        } catch {
+            showNotify("Gagal mengganti password. Periksa koneksi.", "error");
+        } finally {
+            setChangingPassword(false);
+        }
+    };
 
   // --- DATA FETCHING (REAL-TIME REFRESH) ---
   const fetchAllData = async () => {
@@ -266,6 +338,28 @@ export default function AdminPage() {
         setRefreshing(false);
     }
   };
+
+    // Restore session after refresh
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            try {
+                const res = await fetch("/api/admin/me", { cache: "no-store" });
+                if (!res.ok) return;
+                const data = (await res.json().catch(() => null)) as { username?: string } | null;
+                if (cancelled) return;
+                setAdminUser(data?.username || null);
+                setSession(true);
+                await fetchAllData();
+            } finally {
+                if (!cancelled) setAuthChecking(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
   // --- GATE CHECK-IN (SMART SCANNER) ---
     const verifyTicket = async (rawId: string): Promise<"SUCCESS" | "USED" | "ERROR" | "EMPTY"> => {
@@ -634,6 +728,12 @@ export default function AdminPage() {
   // ============================================================================
   // 4. RENDER UI: LOGIN SCREEN
   // ============================================================================
+    if (authChecking && !session) return (
+        <div className="min-h-dvh bg-slate-900 flex items-center justify-center p-4">
+            <div className="text-slate-200 font-bold">Memeriksa sesi admin...</div>
+        </div>
+    );
+
   if (!session) return (
     <div className="min-h-dvh bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Toast Notification for Login */}
@@ -763,7 +863,7 @@ export default function AdminPage() {
         
         <div className="p-4 border-t border-slate-100">
             <button 
-                onClick={() => setSession(false)} 
+                onClick={handleLogout} 
                 className="w-full flex items-center gap-2 px-5 py-4 text-red-500 font-bold hover:bg-red-50 rounded-xl text-sm transition-colors"
             >
                 <LogOut size={18}/> Keluar Sistem
@@ -880,6 +980,51 @@ export default function AdminPage() {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                {/* Change Password */}
+                <div className="md:col-span-4 bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="font-bold text-xl text-slate-900">Ganti Password Admin</h3>
+                            <p className="text-sm text-slate-400">
+                                Akun aktif: <strong>{adminUser || "admin"}</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Password lama"
+                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition-all text-slate-800"
+                        />
+                        <input
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Password baru"
+                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition-all text-slate-800"
+                        />
+                        <input
+                            type="password"
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            placeholder="Konfirmasi password baru"
+                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition-all text-slate-800"
+                        />
+                        <div className="md:col-span-3 flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={changingPassword || loading}
+                                className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 disabled:opacity-70"
+                            >
+                                {changingPassword ? "Menyimpan..." : "Simpan Password"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         )}
@@ -1682,7 +1827,7 @@ export default function AdminPage() {
                 </button>
                 <button
                     type="button"
-                    onClick={() => setSession(false)}
+                    onClick={handleLogout}
                     className="flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] text-slate-500 hover:text-red-600 transition-colors"
                     aria-label="Keluar"
                 >
