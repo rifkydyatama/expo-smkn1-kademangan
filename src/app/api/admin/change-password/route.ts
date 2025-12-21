@@ -50,10 +50,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Server error";
-    const safeMessage =
-      process.env.NODE_ENV !== "production" && message.startsWith("Missing ")
-        ? message
-        : "Server error";
+    const safeMessage = (() => {
+      if (process.env.NODE_ENV !== "production") return message;
+      if (message.startsWith("Missing ")) return message;
+      if (/(SUPABASE|service role|service_role|Invalid API key|JWT|unauthorized)/i.test(message)) {
+        return "Konfigurasi server/Supabase belum benar.";
+      }
+      return "Server error";
+    })();
     return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }

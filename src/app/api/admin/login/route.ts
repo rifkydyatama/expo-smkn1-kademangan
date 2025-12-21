@@ -45,7 +45,22 @@ export async function POST(req: NextRequest) {
     });
 
     return res;
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (err) {
+    console.error("/api/admin/login error:", err);
+
+    const message = err instanceof Error ? err.message : "Server error";
+    const safeMessage = (() => {
+      // In dev: return the real message to speed up debugging.
+      if (process.env.NODE_ENV !== "production") return message;
+
+      // In prod: keep generic, but allow a few safe configuration hints.
+      if (message.startsWith("Missing ")) return message;
+      if (/(SUPABASE|service role|service_role|Invalid API key|JWT|unauthorized)/i.test(message)) {
+        return "Konfigurasi server/Supabase belum benar.";
+      }
+      return "Server error";
+    })();
+
+    return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }
