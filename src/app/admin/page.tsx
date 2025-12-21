@@ -1702,39 +1702,70 @@ export default function AdminPage() {
       </main>
 
             {/* MOBILE BOTTOM NAVIGATION */}
-            <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-white border-t border-slate-200">
+            <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
                 <button
                     type="button"
                     onClick={() => setActiveTab("dashboard")}
-                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-colors ${
                         activeTab === "dashboard" ? "text-cyan-700" : "text-slate-500"
                     }`}
                     aria-label="Dashboard"
                 >
-                    <LayoutDashboard size={20} />
+                    <LayoutDashboard size={18} />
                     Dashboard
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveTab("scanner")}
-                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-colors ${
                         activeTab === "scanner" ? "text-cyan-700" : "text-slate-500"
                     }`}
                     aria-label="Scanner"
                 >
-                    <ShieldCheck size={20} />
+                    <ShieldCheck size={18} />
                     Scanner
                 </button>
                 <button
                     type="button"
+                    onClick={() => setActiveTab("participants")}
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-colors ${
+                        activeTab === "participants" ? "text-cyan-700" : "text-slate-500"
+                    }`}
+                    aria-label="Peserta"
+                >
+                    <Users size={18} />
+                    Peserta
+                </button>
+                <button
+                    type="button"
                     onClick={() => setActiveTab("cms")}
-                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[11px] transition-colors ${
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-colors ${
                         activeTab === "cms" ? "text-cyan-700" : "text-slate-500"
                     }`}
                     aria-label="CMS"
                 >
-                    <MonitorPlay size={20} />
+                    <MonitorPlay size={18} />
                     CMS
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("data_master")}
+                    className={`flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-colors ${
+                        activeTab === "data_master" ? "text-cyan-700" : "text-slate-500"
+                    }`}
+                    aria-label="Data Master"
+                >
+                    <Settings size={18} />
+                    Data
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setSession(false)}
+                    className="flex-1 py-3 flex flex-col items-center justify-center gap-1 font-bold text-[10px] text-slate-500 hover:text-red-600 transition-colors"
+                    aria-label="Keluar"
+                >
+                    <LogOut size={18} />
+                    Keluar
                 </button>
             </nav>
     </div>

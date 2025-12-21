@@ -309,7 +309,7 @@ const CertificateView = ({
                 @media print {
                     @page {
                         size: A4 landscape;
-                        margin: 8mm;
+                        margin: 0;
                     }
 
                     html,
@@ -319,10 +319,6 @@ const CertificateView = ({
                         background: #ffffff !important;
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
-                    }
-
-                    body {
-                        zoom: 0.96;
                     }
 
                     body * {
@@ -338,7 +334,7 @@ const CertificateView = ({
                         position: absolute !important;
                         inset: 0 !important;
                         background: #ffffff !important;
-                        padding: 0 !important;
+                        padding: 8mm !important;
                         overflow: visible !important;
                     }
 
@@ -349,8 +345,10 @@ const CertificateView = ({
                         box-shadow: none !important;
                         border-radius: 0 !important;
                         position: relative !important;
+                        box-sizing: border-box !important;
                         transform: none !important;
                         transform-origin: top left !important;
+                        font-size: 96% !important;
                     }
 
                     .cert-bars {
@@ -375,6 +373,15 @@ const CertificateView = ({
 
             {/* KERTAS A4 LANDSCAPE (297mm x 210mm) */}
             <div className="cert-sheet bg-white text-black w-full max-w-[297mm] aspect-297/210 relative shadow-2xl print:shadow-none print:w-full print:h-full print:fixed print:top-0 print:left-0 print:m-0 print:rounded-none overflow-hidden font-serif">
+                {/* Border & watermark (subtle, official) */}
+                <div className="absolute inset-6 rounded-3xl border border-slate-200 pointer-events-none" />
+                <div className="absolute inset-8 rounded-3xl border border-slate-100 pointer-events-none" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                    <div className="text-slate-200 font-black tracking-[0.35em] rotate-[-18deg] opacity-[0.18] text-5xl sm:text-7xl">
+                        {String(config.kop_school_name || "SMK NEGERI 1 KADEMANGAN").toUpperCase()}
+                    </div>
+                </div>
+
                 {/* Hiasan Sudut Simpel (Opsional) */}
                 <div className="cert-bars absolute top-0 left-0 w-full h-1.25 bg-black print:block"></div>
                 <div className="cert-bars absolute bottom-0 left-0 w-full h-1.25 bg-black print:block"></div>
@@ -409,14 +416,14 @@ const CertificateView = ({
                     </div>
 
                     {/* 2. JUDUL & NOMOR */}
-                    <div className="text-center mt-8 mb-8">
+                    <div className="text-center mt-6 sm:mt-8 mb-6 sm:mb-8">
                         <h2 className="text-3xl sm:text-4xl font-bold underline underline-offset-4 decoration-2">SERTIFIKAT</h2>
                         <p className="text-base sm:text-lg mt-2">Nomor: {certNumber}</p>
                     </div>
 
                     {/* 3. ISI SERTIFIKAT */}
-                    <div className="text-center flex-1 flex flex-col items-center">
-                        <p className="text-xl leading-relaxed">
+                    <div className="text-center flex-1 flex flex-col items-center min-h-0">
+                        <p className="text-base sm:text-xl leading-relaxed">
                             Kepala SMK Negeri 1 Kademangan dengan ini memberikan penghargaan kepada:
                         </p>
 
@@ -425,7 +432,7 @@ const CertificateView = ({
                             <p className="text-base sm:text-xl font-bold text-slate-700">({data.origin_school})</p>
                         </div>
 
-                        <p className="text-xl leading-relaxed max-w-5xl">
+                        <p className="text-base sm:text-xl leading-relaxed max-w-5xl">
                             Atas partisipasinya sebagai <strong>PESERTA AKTIF</strong> dalam kegiatan
                             <br />
                             <span className="font-bold">&quot;{config.hero_title || "EXPO & GEBYAR VOKASI"}&quot;</span>
@@ -435,24 +442,24 @@ const CertificateView = ({
                     </div>
 
                     {/* 4. TANDA TANGAN ELEKTRONIK (QR CODE) */}
-                    <div className="flex justify-end mt-4 px-12">
-                        <div className="text-center w-80">
-                            <p className="text-lg mb-2">Blitar, {today}</p>
-                            <p className="text-lg font-bold mb-4">Kepala Sekolah,</p>
+                    <div className="flex justify-end mt-auto pt-4 px-6 sm:px-12">
+                        <div className="text-center w-64 sm:w-80">
+                            <p className="text-base sm:text-lg mb-2">Blitar, {today}</p>
+                            <p className="text-base sm:text-lg font-bold mb-3">Kepala Sekolah,</p>
 
                             {/* QR CODE BOX */}
                             <div className="border border-slate-300 bg-slate-50 p-2 rounded-lg inline-block mb-2">
-                                <QRCodeSVG value={verifyUrl} size={100} level="H" className="mx-auto" />
+                                <QRCodeSVG value={verifyUrl} size={96} level="H" className="mx-auto" />
                             </div>
 
-                            <p className="text-[10px] text-slate-500 italic mb-4">
+                            <p className="text-[10px] text-slate-500 italic mb-3">
                                 Dokumen ini telah ditandatangani secara elektronik.
                                 <br />
                                 Scan QR Code untuk validasi keaslian.
                             </p>
 
-                            <p className="text-lg font-bold underline underline-offset-2">{config.headmaster_name || "NAMA KEPALA SEKOLAH"}</p>
-                            <p className="text-lg">NIP. {config.headmaster_nip || "-"}</p>
+                            <p className="text-base sm:text-lg font-bold underline underline-offset-2">{config.headmaster_name || "NAMA KEPALA SEKOLAH"}</p>
+                            <p className="text-base sm:text-lg leading-tight">NIP. {config.headmaster_nip || "-"}</p>
                         </div>
                     </div>
                 </div>
